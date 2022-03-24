@@ -1,0 +1,522 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-data-type-mappings
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Data type mappings
+
+[id="how-debezium-oracle-connectors-map-data-types"]
+= How {prodname} Oracle connectors map data types
+
+To represent changes that occur in a table rows, the {prodname} Oracle connector emits change events that are structured like the table in which the rows exists.
+The event contains a field for each column value.
+Column values are represented according to the Oracle data type of the column.
+The following sections describe how the connector maps oracle data types to a _literal type_ and a _semantic type_ in event fields.
+
+_literal type_:: Describes how the value is literally represented using Kafka Connect schema types: `INT8`, `INT16`, `INT32`, `INT64`, `FLOAT32`, `FLOAT64`, `BOOLEAN`, `STRING`, `BYTES`, `ARRAY`, `MAP`, and `STRUCT`.
+
+_semantic type_:: Describes how the Kafka Connect schema captures the _meaning_ of the field using the name of the Kafka Connect schema for the field.
+
+ifdef::product[]
+Details are in the following sections:
+
+* xref:oracle-character-types[]
+* xref:oracle-numeric-types[]
+* xref:oracle-decimal-types[]
+* xref:oracle-temporal-types[]
+* xref:oracle-rowid-types[]
+
+endif::product[]
+
+ifdef::community[]
+Support for further data types is planned for subsequent releases.
+Please file a {jira-url}/browse/DBZ[JIRA issue] for any specific types that might be missing.
+endif::community[]
+
+[id="oracle-character-types"]
+.Character types
+
+The following table describes how the connector maps basic character types.
+
+.Mappings for Oracle basic character types
+[cols="20%a,15%a,55%a",options="header"]
+|===
+|Oracle Data Type
+|Literal type (schema type)
+|Semantic type (schema name) and Notes
+
+|`CHAR[(M)]`
+|`STRING`
+|n/a
+
+|`NCHAR[(M)]`
+|`STRING`
+|n/a
+
+|`NVARCHAR2[(M)]`
+|`STRING`
+|n/a
+
+|`VARCHAR[(M)]`
+|`STRING`
+|n/a
+
+|`VARCHAR2[(M)]`
+|`STRING`
+|n/a
+
+|===
+
+[id="oracle-binary-character-lob-types"]
+.Binary and Character LOB types
+ifdef::community[]
+[NOTE]
+====
+Support for `BLOB`, `CLOB`, and `NCLOB` is currently in incubating state, that is, the exact semantics, configuration options and so forth might change in future revisions, based on feedback we receive.
+Please let us know if you encounter any problems while using these data types.
+====
+endif::community[]
+ifdef::product[]
+[IMPORTANT]
+====
+Use of the `BLOB`, `CLOB`, and `NCLOB` with the {prodname} Oracle connector is a Technology Preview feature only.
+Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete.
+Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+For more information about the support scope of Red Hat Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[https://access.redhat.com/support/offerings/techpreview].
+====
+endif::product[]
+The following table describes how the connector maps binary and character large object (LOB) data types.
+
+.Mappings for Oracle binary and character LOB types
+[cols="20%a,15%a,55%a",options="header"]
+|===
+|Oracle Data Type
+|Literal type (schema type)
+|Semantic type (schema name) and Notes
+
+|`BFILE`
+|n/a
+|_This data type is not supported_
+
+|`BLOB`
+|`BYTES`
+|Either the raw bytes (the default), a base64-encoded String, or a hex-encoded String, based on the xref:#oracle-property-binary-handling-mode[`binary.handling.mode`] connector configuration property setting.
+
+|`CLOB`
+|`STRING`
+|n/a
+
+|`LONG`
+|n/a
+|_This data type is not supported._
+
+|`LONG RAW`
+|n/a
+|_This data type is not supported._
+
+|`NCLOB`
+|`STRING`
+|n/a
+
+|`RAW`
+|n/a
+|_This data type is not supported._
+
+|===
+
+[NOTE]
+====
+Oracle only supplies column values for `CLOB`, `NCLOB`, and `BLOB` data types if they're explicitly set or changed in a SQL statement.
+This means that change events will never contain the value of an unchanged `CLOB`, `NCLOB`, or `BLOB` column,
+but a placeholder as defined by the connector property, `unavailable.value.placeholder`.
+
+If the value of a `CLOB`, `NCLOB`, or `BLOB` column gets updated, the new value will be contained in the `after` part of the corresponding update change events whereas the unavailable value placeholder will be used in the `before` part.
+====
+
+[id="oracle-numeric-types"]
+.Numeric types
+
+The following table describes how the connector maps numeric types.
+
+.Mappings for Oracle numeric data types
+[cols="20%a,15%a,55%a",options="header"]
+|===
+|Oracle Data Type
+|Literal type (schema type)
+|Semantic type (schema name) and Notes
+
+|`BINARY_FLOAT`
+|`FLOAT32`
+|n/a
+
+|`BINARY_DOUBLE`
+|`FLOAT64`
+|n/a
+
+|`DECIMAL[(P, S)]`
+|`BYTES` / `INT8` / `INT16` / `INT32` / `INT64`
+|`org.apache.kafka.connect.data.Decimal` if using `BYTES` +
+ +
+Handled equivalently to `NUMBER` (note that S defaults to 0 for `DECIMAL`).
+
+|`DOUBLE PRECISION`
+|`STRUCT`
+|`io.debezium.data.VariableScaleDecimal` +
+ +
+Contains a structure with two fields: `scale` of type `INT32` that contains the scale of the transferred value and `value` of type `BYTES` containing the original value in an unscaled form.
+
+|`FLOAT[(P)]`
+|`STRUCT`
+|`io.debezium.data.VariableScaleDecimal` +
+ +
+Contains a structure with two fields: `scale` of type `INT32` that contains the scale of the transferred value and `value` of type `BYTES` containing the original value in an unscaled form.
+
+|`INTEGER`, `INT`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal` +
+ +
+`INTEGER` is mapped in Oracle to NUMBER(38,0) and hence can hold values larger than any of the `INT` types could store
+
+|`NUMBER[(P[, *])]`
+|`STRUCT`
+|`io.debezium.data.VariableScaleDecimal` +
+ +
+Contains a structure with two fields: `scale` of type `INT32` that contains the scale of the transferred value and `value` of type `BYTES` containing the original value in an unscaled form.
+
+|`NUMBER(P, S \<= 0)`
+|`INT8` / `INT16` / `INT32` / `INT64`
+|`NUMBER` columns with a scale of 0 represent integer numbers.
+A negative scale indicates rounding in Oracle, for example, a scale of -2 causes rounding to hundreds. +
+ +
+Depending on the precision and scale, one of the following matching Kafka Connect integer type is chosen: +
+
+ * P - S < 3, `INT8` +
+ * P - S < 5, `INT16` +
+ * P - S < 10, `INT32` +
+ * P - S < 19, `INT64` +
+ * P - S >= 19, `BYTES` (`org.apache.kafka.connect.data.Decimal`).
+
+|`NUMBER(P, S > 0)`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal`
+
+|`NUMERIC[(P, S)]`
+|`BYTES` / `INT8` / `INT16` / `INT32` / `INT64`
+|`org.apache.kafka.connect.data.Decimal` if using `BYTES` +
+ +
+Handled equivalently to `NUMBER` (note that S defaults to 0 for `NUMERIC`).
+
+|`SMALLINT`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal` +
+ +
+`SMALLINT` is mapped in Oracle to NUMBER(38,0) and hence can hold values larger than any of the `INT` types could store
+
+|`REAL`
+|`STRUCT`
+|`io.debezium.data.VariableScaleDecimal` +
+ +
+Contains a structure with two fields: `scale` of type `INT32` that contains the scale of the transferred value and `value` of type `BYTES` containing the original value in an unscaled form.
+
+|===
+
+[id="oracle-boolean-types"]
+.Boolean types
+
+Oracle does not natively have support for a `BOOLEAN` data type; however,
+it is common practice to use other data types with certain semantics to simulate the concept of a logical `BOOLEAN` data type.
+
+The operator can configure the out-of-the-box `NumberOneToBooleanConverter` custom converter that would either map all `NUMBER(1)` columns to a `BOOLEAN` or if the `selector` parameter is set,
+then a subset of columns could be enumerated using a comma-separated list of regular expressions.
+
+Following is an example configuration:
+
+[source]
+----
+converters=boolean
+boolean.type=io.debezium.connector.oracle.converters.NumberOneToBooleanConverter
+boolean.selector=.*MYTABLE.FLAG,.*.IS_ARCHIVED
+----
+
+[id="oracle-decimal-types"]
+.Decimal types
+
+{prodname} connectors handle decimals according to the setting of the xref:{link-oracle-connector}#oracle-property-decimal-handling-mode[`decimal.handling.mode` connector configuration property].
+The setting of the Oracle connector configuration property, `decimal.handling.mode` determines how the connector maps decimal types.
+
+decimal.handling.mode=precise::
+When the `decimal.handling.mode` property is set to `precise`, the connector uses Kafka Connect `org.apache.kafka.connect.data.Decimal` logical type for all `DECIMAL` and `NUMERIC` columns.
+This is the default mode.
++
+.Mappings when `decimal.handing.mode=precise`
+[cols="30%a,15%a,55%a",options="header",subs="+attributes"]
+|===
+|Oracle type
+|Literal type (schema type)
+|Semantic type (schema name)
+
+|`NUMERIC[(P[,S])]`
+|`BYTES`
+a|`org.apache.kafka.connect.data.Decimal` +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point shifted.
+
+|`DECIMAL[(P[,S])]`
+|`BYTES`
+a|`org.apache.kafka.connect.data.Decimal` +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point shifted.
+
+|`SMALLMONEY`
+|`BYTES`
+a|`org.apache.kafka.connect.data.Decimal` +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point shifted.
+
+|`MONEY`
+|`BYTES`
+a|`org.apache.kafka.connect.data.Decimal` +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point shifted.
+
+|===
+
+decimal.handling.mode=double::
+When the `decimal.handling.mode` property is set to `double`, the connector represents the values as Java double values with schema type `FLOAT64`.
++
+.Mappings when `decimal.handing.mode=double`
+[cols="30%a,30%a,40%a",options="header",subs="+attributes"]
+|===
+|Oracle type |Literal type |Semantic type
+
+|`NUMERIC[(M[,D])]`
+|`FLOAT64`
+a|_n/a_
+
+|`DECIMAL[(M[,D])]`
+|`FLOAT64`
+a|_n/a_
+
+|`SMALLMONEY[(M[,D])]`
+|`FLOAT64`
+a|_n/a_
+
+|`MONEY[(M[,D])]`
+|`FLOAT64`
+a|_n/a_
+
+|===
+
+decimal.handling.mode=string::
+When the `decimal.handling.mode` configuration property is set to `string`, the connector represents `DECIMAL`,`NUMERIC`, and `MONEY` values as their formatted string representation, and encodes the values as shown in the following table.
++
+.Mappings when `decimal.handling.mode` is `string`
+[cols="30%a,30%a,40%a",options="header"]
+|===
+|Oracle data type
+|Literal type (schema type)
+|Semantic type (schema name)
+
+|`NUMERIC[(M[,D])]`
+|`STRING`
+|_n/a_
+
+|`DECIMAL[(M[,D])]`
+|`STRING`
+|_n/a_
+
+|`MONEY[(M[,D])]`
+|`STRING`
+|_n/a_
+
+|===
+
+
+[id="oracle-temporal-types"]
+.Temporal types
+
+Other than Oracle's `INTERVAL`, `TIMESTAMP WITH TIME ZONE` and `TIMESTAMP WITH LOCAL TIME ZONE` data types, the other temporal types depend on the value of the `time.precision.mode` configuration property.
+
+When the `time.precision.mode` configuration property is set to `adaptive` (the default), then the connector determines the literal and semantic type for the temporal types based on the column's data type definition so that events _exactly_ represent the values in the database:
+
+[cols="25%a,20%a,55%a",options="header"]
+|===
+|Oracle data type |Literal type (schema type) |Semantic type (schema name) and Notes
+
+|`DATE`
+|`INT64`
+|`io.debezium.time.Timestamp` +
+ +
+Represents the number of milliseconds past epoch, and does not include timezone information.
+
+|`INTERVAL DAY[(M)] TO SECOND`
+|`FLOAT64`
+|`io.debezium.time.MicroDuration` +
+ +
+The number of micro seconds for a time interval using the `365.25 / 12.0` formula for days per month average. +
+ +
+`io.debezium.time.Interval` (when `interval.handling.mode` is set to `string`) +
+ +
+The string representation of the interval value that follows the pattern `P<years>Y<months>M<days>DT<hours>H<minutes>M<seconds>S`, for example,  `P1Y2M3DT4H5M6.78S`.
+
+|`INTERVAL YEAR[(M)] TO MONTH`
+|`FLOAT64`
+|`io.debezium.time.MicroDuration` +
+ +
+The number of micro seconds for a time interval using the `365.25 / 12.0` formula for days per month average. +
+ +
+`io.debezium.time.Interval` (when `interval.handling.mode` is set to `string`) +
+ +
+The string representation of the interval value that follows the pattern `P<years>Y<months>M<days>DT<hours>H<minutes>M<seconds>S`, for example,  `P1Y2M3DT4H5M6.78S`.
+
+|`TIMESTAMP(0 - 3)`
+|`INT64`
+|`io.debezium.time.Timestamp` +
+ +
+Represents the number of milliseconds past epoch, and does not include timezone information.
+
+|`TIMESTAMP, TIMESTAMP(4 - 6)`
+|`INT64`
+|`io.debezium.time.MicroTimestamp` +
+ +
+Represents the number of microseconds past epoch, and does not include timezone information.
+
+|`TIMESTAMP(7 - 9)`
+|`INT64`
+|`io.debezium.time.NanoTimestamp` +
+ +
+Represents the number of nanoseconds past epoch, and does not include timezone information.
+
+|`TIMESTAMP WITH TIME ZONE`
+|`STRING`
+|`io.debezium.time.ZonedTimestamp` +
+ +
+A string representation of a timestamp with timezone information.
+
+|`TIMESTAMP WITH LOCAL TIME ZONE`
+|`STRING`
+|`io.debezium.time.ZonedTimestamp` +
+ +
+A string representation of a timestamp in UTC.
+
+|===
+
+When the `time.precision.mode` configuration property is set to `connect`, then the connector uses the predefined Kafka Connect logical types.
+This can be useful when consumers only know about the built-in Kafka Connect logical types and are unable to handle variable-precision time values.
+Because the level of precision that Oracle supports exceeds the level that the logical types in Kafka Connect support, if you set `time.precision.mode` to `connect`, *a loss of precision* results when the _fractional second precision_ value of a database column is greater than 3:
+
+[cols="25%a,20%a,55%a",options="header"]
+|===
+|Oracle data type |Literal type (schema type) |Semantic type (schema name) and Notes
+
+|`DATE`
+|`INT32`
+|`org.apache.kafka.connect.data.Date` +
+ +
+Represents the number of days since the epoch.
+
+|`INTERVAL DAY[(M)] TO SECOND`
+|`FLOAT64`
+|`io.debezium.time.MicroDuration` +
+ +
+The number of micro seconds for a time interval using the `365.25 / 12.0` formula for days per month average. +
+ +
+`io.debezium.time.Interval` (when `interval.handling.mode` is set to `string`) +
+ +
+The string representation of the interval value that follows the pattern `P<years>Y<months>M<days>DT<hours>H<minutes>M<seconds>S`, for example,  `P1Y2M3DT4H5M6.78S`.
+
+|`INTERVAL YEAR[(M)] TO MONTH`
+|`FLOAT64`
+|`io.debezium.time.MicroDuration` +
+ +
+The number of micro seconds for a time interval using the `365.25 / 12.0` formula for days per month average. +
+ +
+`io.debezium.time.Interval` (when `interval.handling.mode` is set to `string`) +
+ +
+The string representation of the interval value that follows the pattern `P<years>Y<months>M<days>DT<hours>H<minutes>M<seconds>S`, for example,  `P1Y2M3DT4H5M6.78S`.
+
+|`TIMESTAMP(0 - 3)`
+|`INT64`
+|`org.apache.kafka.connect.data.Timestamp` +
+ +
+Represents the number of milliseconds since epoch, and does not include timezone information.
+
+|`TIMESTAMP(4 - 6)`
+|`INT64`
+|`org.apache.kafka.connect.data.Timestamp` +
+ +
+Represents the number of milliseconds since epoch, and does not include timezone information.
+
+|`TIMESTAMP(7 - 9)`
+|`INT64`
+|`org.apache.kafka.connect.data.Timestamp` +
+ +
+Represents the number of milliseconds since epoch, and does not include timezone information.
+
+|`TIMESTAMP WITH TIME ZONE`
+|`STRING`
+|`io.debezium.time.ZonedTimestamp` +
+ +
+A string representation of a timestamp with timezone information.
+
+|`TIMESTAMP WITH LOCAL TIME ZONE`
+|`STRING`
+|`io.debezium.time.ZonedTimestamp` +
+ +
+A string representation of a timestamp in UTC.
+
+|===
+
+[id="oracle-rowid-types"]
+.ROWID types
+
+The following table describes how the connector maps ROWID (row address) data types.
+
+.Mappings for Oracle ROWID data types
+[cols="20%a,15%a,55%a",options="header"]
+|===
+|Oracle Data Type
+|Literal type (schema type)
+|Semantic type (schema name) and Notes
+
+|`ROWID`
+|`STRING`
+|
+ifdef::community[]
+_This data type is not supported when using Oracle XStream._
+endif::community[]
+ifdef::product[]
+n/a
+endif::product[]
+
+|`UROWID`
+|n/a
+|_This data type is not supported_.
+
+|===
+
+[id="oracle-user-defined-types"]
+.User-defined types
+
+Oracle enables you to define custom data types to provide flexibility when the built-in data types do not satisfy your requirements.
+There are a several user-defined types such as Object types, REF data types, Varrays, and Nested Tables.
+At this time, you cannot use the {prodname} Oracle connector with any of these user-defined types.
+
+[id="oracle-suppplied-types"]
+.Oracle-supplied types
+
+Oracle provides SQL-based interfaces that you can use to define new types when the built-in or ANSI-supported types are insufficient.
+Oracle offers several commonly used data types to serve a broad array of purposes such as *Any*, *XML*, or *Spatial* types.
+At this time, you cannot use the {prodname} Oracle connector with any of these data types.
+
+[[oracle-default-values]]
+.Default Values
+If a default value is specified for a column in the database schema, the Oracle connector will attempt to propagate this value to the schema of the corresponding Kafka record field. Most common data types are supported, including:
+
+* Character types (`CHAR`, `NCHAR`, `VARCHAR`, `VARCHAR2`, `NVARCHAR`, `NVARCHAR2`)
+* Numeric types (`INTEGER`, `NUMERIC`, etc.)
+* Temporal types (`DATE`, `TIMESTAMP`, `INTERVAL`, etc.)
+
+If a temporal type uses a function call such as `TO_TIMESTAMP` or `TO_DATE` to represent the default value, the connector will resolve the default value by making an additional database call to evaluate the function.
+For example, if a `DATE` column is defined with the default value of `TO_DATE('2021-01-02', 'YYYY-MM-DD')`, the column's default value will be the number of days since epoch for that date or `18629` in this case.
+
+If a temporal type uses the `SYSDATE` constant to represent the default value, the connector will resolve this based on whether the column is defined as `NOT NULL` or `NULL`.
+If the column is nullable, no default value will be set; however, if the column isn't nullable then the default value will be resolved as either `0` (for `DATE` or `TIMESTAMP(n)` data types) or `1970-01-01T00:00:00Z` (for `TIMESTAMP WITH TIME ZONE` or `TIMESTAMP WITH LOCAL TIME ZONE` data types).
+The default value type will be numeric except if the column is a `TIMESTAMP WITH TIME ZONE` or `TIMESTAMP WITH LOCAL TIME ZONE` in which case its emitted as a string.
+

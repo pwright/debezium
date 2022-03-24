@@ -1,0 +1,47 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-events
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Data change events
+
+[id="descriptions-of-debezium-oracle-connector-data-change-events"]
+= Descriptions of {prodname} Oracle connector data change events
+
+Every data change event that the Oracle connector emits has a key and a value.
+The structures of the key and value depend on the table from which the change events originate.
+For information about how {prodname} constructs topic names, see xref:{link-oracle-connector}#oracle-topic-names[Topic names]).
+
+[WARNING]
+====
+The {prodname} Oracle connector ensures that all Kafka Connect _schema names_ are http://avro.apache.org/docs/current/spec.html#names[valid Avro schema names].
+This means that the logical server name must start with alphabetic characters or an underscore ([a-z,A-Z,\_]),
+and the remaining characters in the logical server name and all characters in the schema and table names must be alphanumeric characters or an underscore ([a-z,A-Z,0-9,\_]).
+The connector automatically replaces invalid characters with an underscore character.
+
+Unexpected naming conflicts can result when the only distinguishing characters between multiple logical server names, schema names, or table names are not valid characters, and those characters are replaced with underscores.
+====
+
+{prodname} and Kafka Connect are designed around _continuous streams of event messages_.
+However, the structure of these events might change over time, which can be difficult for topic consumers to handle.
+To facilitate the processing of mutable event structures, each event in Kafka Connect is self-contained.
+Every message key and value has two parts: a _schema_ and _payload_.
+The schema describes the structure of the payload, while the payload contains the actual data.
+
+[WARNING]
+====
+Changes that are performed by the `SYS` or `SYSTEM` user accounts are not captured by the connector.
+====
+ifdef::product[]
+The following topics contain more details about data change events:
+
+* xref:about-keys-in-debezium-oracle-connector-change-events[]
+* xref:about-values-in-debezium-oracle-connector-change-events[]
+endif::product[]
+
+
+include::../../modules/debezium-using/con-about-keys-in-debezium-oracle-connector-change-events.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-about-values-in-debezium-oracle-connector-change-events.adoc[leveloffset=+1]
+

@@ -3,6 +3,8 @@
 [id="debezium-connector-for-oracle"]
 = {prodname} Connector for Oracle
 
+:partialsdir: ../../partials/
+
 :context: oracle
 :data-collection: table
 :mbean-name: {context}

@@ -1,0 +1,42 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Preparing the database
+
+[id="preparing-oracle-databases-for-use-with-debezium"]
+= Preparing Oracle databases for use with {prodname}
+
+.Configuration needed for Oracle LogMiner
+[source,indent=0]
+----
+ORACLE_SID=ORACLCDB dbz_oracle sqlplus /nolog
+
+CONNECT sys/top_secret AS SYSDBA
+alter system set db_recovery_file_dest_size = 10G;
+alter system set db_recovery_file_dest = '/opt/oracle/oradata/recovery_area' scope=spfile;
+shutdown immediate
+startup mount
+alter database archivelog;
+alter database open;
+-- Should now "Database log mode: Archive Mode"
+archive log list
+
+exit;
+----
+
+In addition, supplemental logging must be enabled for captured tables or the database in order for data changes to capture the _before_ state of changed database rows.
+The following illustrates how to configure this on a specific table, which is the ideal choice to minimize the amount of information captured in the Oracle redo logs.
+
+[source,indent=0]
+----
+ALTER TABLE inventory.customers ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+----
+
+Minimal supplemental logging must be enabled at the database level and can be configured as follows.
+
+[source,indent=0]
+----
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
+----
+

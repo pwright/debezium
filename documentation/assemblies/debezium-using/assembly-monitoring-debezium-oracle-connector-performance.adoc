@@ -1,0 +1,27 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-monitoring
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Monitoring
+
+[id="monitoring-debezium-oracle-connector-performance"]
+= Monitoring {prodname} Oracle connector performance
+
+The {prodname} Oracle connector provides three metric types in addition to the built-in support for JMX metrics that Apache Zookeeper, Apache Kafka, and Kafka Connect have.
+
+* xref:{link-oracle-connector}#oracle-snapshot-metrics[snapshot metrics]; for monitoring the connector when performing snapshots
+* xref:{link-oracle-connector}#oracle-streaming-metrics[streaming metrics]; for monitoring the connector when processing change events
+* xref:{link-oracle-connector}#oracle-schema-history-metrics[schema history metrics]; for monitoring the status of the connector's schema history
+
+Please refer to the xref:{link-debezium-monitoring}#monitoring-debezium[monitoring documentation] for details of how to expose these metrics via JMX.
+
+
+include::../../modules/debezium-using/ref-debezium-oracle-connector-snapshot-metrics.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-debezium-oracle-connector-streaming-metrics.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-debezium-oracle-connector-schema-history-metrics.adoc[leveloffset=+1]
+

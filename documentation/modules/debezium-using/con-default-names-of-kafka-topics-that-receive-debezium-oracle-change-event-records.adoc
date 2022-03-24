@@ -1,0 +1,38 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-topic-names
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Topic names
+
+[id="default-names-of-kafka-topics-that-receive-debezium-oracle-change-event-records"]
+= Default names of Kafka topics that receive {prodname} Oracle change event records
+
+By default, the Oracle connector writes change events for all `INSERT`, `UPDATE`, and `DELETE` operations that occur in a table to a single Apache Kafka topic that is specific to that table.
+The connector uses the following convention to name change event topics:
+
+_serverName.schemaName.tableName_
+
+The following list provides definitions for the components of the default name:
+
+_serverName_:: The logical name of the server as specified by the xref:oracle-property-database-server-name[`database.server.name`] connector configuration property.
+
+_schemaName_:: The name of the schema in which the operation occurred.
+
+_tableName_:: The name of the table in which the operation occurred.
+
+For example, if `fulfillment` is the server name, `inventory` is the schema name, and the database contains tables with the names `orders`, `customers`, and `products`,
+the {prodname} Oracle connector emits events to the following Kafka topics, one for each table in the database:
+
+----
+fulfillment.inventory.orders
+fulfillment.inventory.customers
+fulfillment.inventory.products
+----
+
+The connector applies similar naming conventions to label its internal database history topics, xref:oracle-schema-change-topic[schema change topics], and xref:oracle-transaction-metadata[transaction metadata topics].
+
+If the default topic name do not meet your requirements, you can configure custom topic names.
+To configure custom topic names, you specify regular expressions in the logical topic routing SMT.
+For more information about using the logical topic routing SMT to customize topic naming, see xref:{link-topic-routing}#topic-routing[Topic routing].
+

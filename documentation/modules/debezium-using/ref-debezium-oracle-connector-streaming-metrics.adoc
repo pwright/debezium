@@ -1,0 +1,320 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-streaming-metrics
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Streaming Metrics
+
+[id="debezium-oracle-connector-streaming-metrics"]
+= {prodname} Oracle connector streaming metrics
+
+[[oracle-monitoring-streaming]]
+
+The *MBean* is `debezium.{mbean-name}:type=connector-metrics,context=streaming,server=_<{context}.server.name>_`.
+
+The following table lists the streaming metrics that are available.
+
+[cols="45%a,25%a,30%a",options="header"]
+|===
+|Attributes |Type |Description
+
+|[[connectors-strm-metric-lastevent_{context}]]<<connectors-strm-metric-lastevent_{context}, `LastEvent`>>
+|`string`
+|The last streaming event that the connector has read.
+
+|[[connectors-strm-metric-millisecondssincelastevent_{context}]]<<connectors-strm-metric-millisecondssincelastevent_{context}, `MilliSecondsSinceLastEvent`>>
+|`long`
+|The number of milliseconds since the connector has read and processed the most recent event.
+
+|[[connectors-strm-metric-totalnumberofeventsseen_{context}]]<<connectors-strm-metric-totalnumberofeventsseen_{context}, `TotalNumberOfEventsSeen`>>
+|`long`
+|The total number of events that this connector has seen since the last start or metrics reset.
+
+|[[connectors-strm-metric-totalnumberofcreateeventsseen_{context}]]<<connectors-strm-metric-totalnumberofcreateeventsseen_{context}, `TotalNumberOfCreateEventsSeen`>>
+|`long`
+|The total number of create events that this connector has seen since the last start or metrics reset.
+
+|[[connectors-strm-metric-totalnumberofupdateeventsseen_{context}]]<<connectors-strm-metric-totalnumberofupdateeventsseen_{context}, `TotalNumberOfUpdateEventsSeen`>>
+|`long`
+|The total number of update events that this connector has seen since the last start or metrics reset.
+
+|[[connectors-strm-metric-totalnumberofdeleteeventsseen_{context}]]<<connectors-strm-metric-totalnumberofdeleteeventsseen_{context}, `TotalNumberOfDeleteEventsSeen`>>
+|`long`
+|The total number of delete events that this connector has seen since the last start or metrics reset.
+
+|[[connectors-strm-metric-numberofeventsfiltered_{context}]]<<connectors-strm-metric-numberofeventsfiltered_{context}, `NumberOfEventsFiltered`>>
+|`long`
+|The number of events that have been filtered by include/exclude list filtering rules configured on the connector.
+
+ifdef::product[]
+|[[connectors-strm-metric-monitoredtables_{context}]]<<connectors-strm-metric-monitoredtables_{context}, `MonitoredTables`>> +
+_Deprecated and scheduled for removal in a future release; use the 'CapturedTables' metric instead_
+|`string[]`
+|The list of tables that are monitored by the connector.
+endif::product[]
+
+|[[connectors-strm-metric-capturedtables_{context}]]<<connectors-strm-metric-capturedtables_{context}, `CapturedTables`>>
+|`string[]`
+|The list of tables that are captured by the connector.
+
+|[[connectors-strm-metric-queuetotalcapacity_{context}]]<<connectors-strm-metric-queuetotalcapacity_{context}, `QueueTotalCapacity`>>
+|`int`
+|The length the queue used to pass events between the streamer and the main Kafka Connect loop.
+
+|[[connectors-strm-metric-queueremainingcapacity_{context}]]<<connectors-strm-metric-queueremainingcapacity_{context}, `QueueRemainingCapacity`>>
+|`int`
+|The free capacity of the queue used to pass events between the streamer and the main Kafka Connect loop.
+
+|[[connectors-strm-metric-connected_{context}]]<<connectors-strm-metric-connected_{context}, `Connected`>>
+|`boolean`
+|Flag that denotes whether the connector is currently connected to the database server.
+
+|[[connectors-strm-metric-millisecondsbehindsource_{context}]]<<connectors-strm-metric-millisecondsbehindsource_{context}, `MilliSecondsBehindSource`>>
+|`long`
+|The number of milliseconds between the last change event's timestamp and the connector processing it.
+The values will incoporate any differences between the clocks on the machines where the database server and the connector are running.
+
+|[[connectors-strm-metric-numberofcommittedtransactions_{context}]]<<connectors-strm-metric-numberofcommittedtransactions_{context}, `NumberOfCommittedTransactions`>>
+|`long`
+|The number of processed transactions that were committed.
+
+|[[connectors-strm-metric-sourceeventposition_{context}]]<<connectors-strm-metric-sourceeventposition_{context}, `SourceEventPosition`>>
+|`Map<String, String>`
+|The coordinates of the last received event.
+
+|[[connectors-strm-metric-lasttransactionid_{context}]]<<connectors-strm-metric-lasttransactionid_{context}, `LastTransactionId`>>
+|`string`
+|Transaction identifier of the last processed transaction.
+
+|[[connectors-strm-metric-maxqueuesizeinbytes_{context}]]<<connectors-strm-metric-maxqueuesizeinbytes_{context}, `MaxQueueSizeInBytes`>>
+|`long`
+|The maximum buffer of the queue in bytes. This metric is available if xref:{context}-property-max-queue-size-in-bytes[`max.queue.size.in.bytes`] is set to a positive long value.
+
+|[[connectors-strm-metric-currentqueuesizeinbytes_{context}]]<<connectors-strm-metric-currentqueuesizeinbytes_{context}, `CurrentQueueSizeInBytes`>>
+|`long`
+|The current volume, in bytes, of records in the queue.
+
+|===
+
+The {prodname} Oracle connector also provides the following additional streaming metrics:
+
+.Descriptions of additional streaming metrics
+[cols="45%a,25%a,30%a"]
+|===
+|Attributes |Type |Description
+
+|[[oracle-streaming-metrics-currentscn]]<<oracle-streaming-metrics-currentscn, `+CurrentScn+`>>
+|`string`
+|The most recent system change number that has been processed.
+
+|[[oracle-streaming-metrics-oldest-scn]]<<oracle-streaming-metrics-oldest-scn, `+OldestScn+`>>
+|`string`
+|The oldest system change number in the transaction buffer.
+
+|[[oracle-streaming-metrics-committed-scn]]<<oracle-streaming-metrics-committed-scn, `+ComittedScn+`>>
+|`string`
+|The last committed system change number from the transaction buffer.
+
+|[[oracle-streaming-metrics-offset-scn]]<<oracle-streaming-metrics-offset-scn, `+OffsetScn+`>>
+|`string`
+|The system change number currently written to the connector's offsets.
+
+|[[oracle-streaming-metrics-currentredologfilename]]<<oracle-streaming-metrics-currentredologfilename, `+CurrentRedoLogFileName+`>>
+|`string[]`
+|Array of the log files that are currently mined.
+
+|[[oracle-streaming-metrics-minimumminedlogcount]]<<oracle-streaming-metrics-minimumminedlogcount, `+MinimumMinedLogCount+`>>
+|`long`
+|The minimum number of logs specified for any LogMiner session.
+
+|[[oracle-streaming-metrics-maximumminedlogcount]]<<oracle-streaming-metrics-maximumminedlogcount, `+MaximumMinedLogCount+`>>
+|`long`
+|The maximum number of logs specified for any LogMiner session.
+
+|[[oracle-streaming-metrics-redologstatus]]<<oracle-streaming-metrics-redologstatus, `+RedoLogStatus+`>>
+|`string[]`
+|Array of the current state for each mined logfile with the format `_filename_\|_status_`.
+
+|[[oracle-streaming-metrics-switchcounter]]<<oracle-streaming-metrics-switchcounter, `+SwitchCounter+`>>
+|`int`
+|The number of times the database has performed a log switch for the last day.
+
+|[[oracle-streaming-metrics-lastcaptureddmlcount]]<<oracle-streaming-metrics-lastcaptureddmlcount, `+LastCapturedDmlCount+`>>
+|`long`
+|The number of DML operations observed in the last LogMiner session query.
+
+|[[oracle-streaming-metrics-maxcaptureddmlinbatch]]<<oracle-streaming-metrics-maxcaptureddmlinbatch, `+MaxCapturedDmlInBatch+`>>
+|`long`
+|The maximum number of DML operations observed while processing a single LogMiner session query.
+
+|[[oracle-streaming-metrics-totalcaptureddmlcount]]<<oracle-streaming-metrics-totalcaptureddmlcount, `+TotalCapturedDmlCount+`>>
+|`long`
+|The total number of DML operations observed.
+
+|[[oracle-streaming-metrics-fetchingquerycount]]<<oracle-streaming-metrics-fetchingquerycount, `+FetchingQueryCount+`>>
+|`long`
+|The total number of LogMiner session query (aka batches) performed.
+
+|[[oracle-streaming-metrics-lastdurationoffetchqueryinmilliseconds]]<<oracle-streaming-metrics-lastdurationoffetchqueryinmilliseconds, `+LastDurationOfFetchQueryInMilliseconds+`>>
+|`long`
+|The duration of the last LogMiner session query's fetch in milliseconds.
+
+|[[oracle-streaming-metrics-maxdurationoffetchqueryinmilliseconds]]<<oracle-streaming-metrics-maxdurationoffetchqueryinmilliseconds, `+MaxDurationOfFetchQueryInMilliseconds+`>>
+|`long`
+|The maximum duration of any LogMiner session query's fetch in milliseconds.
+
+|[[oracle-streaming-metrics-lastbatchprocessingtimeinmilliseconds]]<<oracle-streaming-metrics-lastbatchprocessingtimeinmilliseconds, `+LastBatchProcessingTimeInMilliseconds+`>>
+|`long`
+|The duration for processing the last LogMiner query batch results in milliseconds.
+
+|[[oracle-streaming-metrics-totalparsetimeinmilliseconds]]<<oracle-streaming-metrics-totalparsetimeinmilliseconds, `+TotalParseTimeInMilliseconds+`>>
+|`long`
+|The time in milliseconds spent parsing DML event SQL statements.
+
+|[[oracle-streaming-metrics-lastminingsessionstarttimeinmilliseconds]]<<oracle-streaming-metrics-lastminingsessionstarttimeinmilliseconds, `+LastMiningSessionStartTimeInMilliseconds+`>>
+|`long`
+|The duration in milliseconds to start the last LogMiner session.
+
+|[[oracle-streaming-metrics-maxminingsessionstarttimeinmilliseconds]]<<oracle-streaming-metrics-maxminingsessionstarttimeinmilliseconds, `+MaxMiningSessionStartTimeInMilliseconds+`>>
+|`long`
+|The longest duration in milliseconds to start a LogMiner session.
+
+|[[oracle-streaming-metrics-totalminingsessionstarttimeinmilliseconds]]<<oracle-streaming-metrics-totalminingsessionstarttimeinmilliseconds, `+TotalMiningSessionStartTimeInMilliseconds+`>>
+|`long`
+|The total duration in milliseconds spent by the connector starting LogMiner sessions.
+
+|[[oracle-streaming-metrics-minbatchprocessingtimeinmilliseconds]]<<oracle-streaming-metrics-minbatchprocessingtimeinmilliseconds, `+MinBatchProcessingTimeInMilliseconds+`>>
+|`long`
+|The minimum duration in milliseconds spent processing results from a single LogMiner session.
+
+|[[oracle-streaming-metrics-maxbatchprocessingtimeinmilliseconds]]<<oracle-streaming-metrics-maxbatchprocessingtimeinmilliseconds, `+MaxBatchProcessingTimeInMilliseconds+`>>
+|`long`
+|The maximum duration in milliseconds spent processing results from a single LogMiner session.
+
+|[[oracle-streaming-metrics-totalprocessingtimeinmilliseconds]]<<oracle-streaming-metrics-totalprocessingtimeinmilliseconds, `+TotalProcessingTimeInMilliseconds+`>>
+|`long`
+|The total duration in milliseconds spent processing results from LogMiner sessions.
+
+|[[oracle-streaming-metrics-totalresultsetnexttimeinmilliseconds]]<<oracle-streaming-metrics-totalresultsetnexttimeinmilliseconds, `+TotalResultSetNextTimeInMilliseconds+`>>
+|`long`
+|The total duration in milliseconds spent by the JDBC driver fetching the next row to be processed from the log mining view.
+
+|[[oracle-streaming-metrics-totalprocessedrows]]<<oracle-streaming-metrics-totalprocessedrows, `+TotalProcessedRows+`>>
+|`long`
+|The total number of rows processed from the log mining view across all sessions.
+
+|[[oracle-streaming-metrics-batchsize]]<<oracle-streaming-metrics-batchsize, `+BatchSize+`>>
+|`int`
+|The number of entries fetched by the log mining query per database round-trip.
+
+|[[oracle-streaming-metrics-millisecondtosleepbetweenminingquery]]<<oracle-streaming-metrics-millisecondtosleepbetweenminingquery, `+MillisecondToSleepBetweenMiningQuery+`>>
+|`long`
+|The number of milliseconds the connector sleeps before fetching another batch of results from the log mining view.
+
+|[[oracle-streaming-metrics-maxbatchprocessingthroughput]]<<oracle-streaming-metrics-maxbatchprocessingthroughput, `+MaxBatchProcessingThroughput+`>>
+|`long`
+|The maximum number of rows/second processed from the log mining view.
+
+|[[oracle-streaming-metrics-averagebatchprocessingthroughput]]<<oracle-streaming-metrics-averagebatchprocessingthroughput, `+AverageBatchProcessingThroughput+`>>
+|`long`
+|The average number of rows/second processed from the log mining.
+
+|[[oracle-streaming-metrics-lastbatchprocessingthroughput]]<<oracle-streaming-metrics-lastbatchprocessingthroughput, `+LastBatchProcessingThroughput+`>>
+|`long`
+|The average number of rows/second processed from the log mining view for the last batch.
+
+|[[oracle-streaming-metrics-networkconnectionproblemscounter]]<<oracle-streaming-metrics-networkconnectionproblemscounter, `+NetworkConnectionProblemsCounter+`>>
+|`long`
+|The number of connection problems detected.
+
+|[[oracle-streaming-metrics-hourstokeeptransactioninbuffer]]<<oracle-streaming-metrics-hourstokeeptransactioninbuffer, `+HoursToKeepTransactionInBuffer+`>>
+|`int`
+|The number of hours that transactions are retained by the connector's in-memory buffer without being committed or rolled back before being discarded.
+See <<oracle-property-log-mining-transaction-retention-hours, `log.mining.transaction.retention`>> for more details.
+
+|[[oracle-streaming-metrics-number-of-active-transactions]]<<oracle-streaming-metrics-number-of-active-transactions, `+NumberOfActiveTransactions+`>>
+|`long`
+|The number of current active transactions in the transaction buffer.
+
+|[[oracle-streaming-metrics-number-of-committed-transactions]]<<oracle-streaming-metrics-number-of-committed-transactions, `+NumberOfCommittedTransactions+`>>
+|`long`
+|The number of committed transactions in the transaction buffer.
+
+|[[oracle-streaming-metrics-number-of-rolledback-transactions]]<<oracle-streaming-metrics-number-of-rolledback-transactions, `+NumberOfRolledBackTransactions+`>>
+|`long`
+|The number of rolled back transactions in the transaction buffer.
+
+|[[oracle-streaming-metrics-commit-throughput]]<<oracle-streaming-metrics-commit-throughput, `+CommitThroughput+`>>
+|`long`
+|The average number of committed transactions per second in the transaction buffer.
+
+|[[oracle-streaming-metrics-registered-dml-count]]<<oracle-streaming-metrics-registered-dml-count, `+RegisteredDmlCount+`>>
+|`long`
+|The number of registered DML operations in the transaction buffer.
+
+|[[oracle-streaming-metrics-lag-from-source-in-milliseconds]]<<oracle-streaming-metrics-lag-from-source-in-milliseconds, `+LagFromSourceInMilliseconds+`>>
+|`long`
+|The time difference in milliseconds between when a change occurred in the transaction logs and when its added to the transaction buffer.
+
+|[[oracle-streaming-metrics-max-lag-from-source-in-milliseconds]]<<oracle-streaming-metrics-max-lag-from-source-in-milliseconds, `+MaxLagFromSourceInMilliseconds+`>>
+|`long`
+|The maximum time difference in milliseconds between when a change occurred in the transaction logs and when its added to the transaction buffer.
+
+|[[oracle-streaming-metrics-min-lag-from-source-in-milliseconds]]<<oracle-streaming-metrics-min-lag-from-source-in-milliseconds, `+MinLagFromSourceInMilliseconds+`>>
+|`long`
+|The minimum time difference in milliseconds between when a change occurred in the transaction logs and when its added to the transaction buffer.
+
+|[[oracle-streaming-metrics-abandoned-transaction-ids]]<<oracle-streaming-metrics-abandoned-transaction-ids, `+AbandonedTransactionIds+`>>
+|`string[]`
+|An array of abandoned transaction identifiers removed from the transaction buffer due to their age.
+See <<oracle-property-log-mining-transaction-retention-hours, `log.mining.transaction.retention.hours`>> for details.
+
+|[[oracle-streaming-metrics-rolled-back-transaction-ids]]<<oracle-streaming-metrics-rolled-back-transaction-ids, `+RolledBackTransactionIds+`>>
+|`string[]`
+|An array of transaction identifiers that have been mined and rolled back in the transaction buffer.
+
+|[[oracle-streaming-metrics-last-commit-duration-in-milliseconds]]<<oracle-streaming-metrics-last-commit-duration-in-milliseconds, `+LastCommitDurationInMilliseconds+`>>
+|`long`
+|The duration of the last transaction buffer commit operation in milliseconds.
+
+|[[oracle-streaming-metrics-max-commit-duration-in-milliseconds]]<<oracle-streaming-metrics-max-commit-duration-in-milliseconds, `+MaxCommitDurationInMilliseconds+`>>
+|`long`
+|The duration of the longest transaction buffer commit operation in milliseconds.
+
+|[[oracle-streaming-metrics-error-count]]<<oracle-streaming-metrics-error-count, `+ErrorCount+`>>
+|`int`
+|The number of errors detected.
+
+|[[oracle-streaming-metrics-warning-count]]<<oracle-streaming-metrics-warning-count, `+WarningCount+`>>
+|`int`
+|The number of warnings detected.
+
+|[[oracle-streaming-metrics-scn-freeze-count]]<<oracle-streaming-metrics-scn-freeze-count, `+ScnFreezeCount+`>>
+|`int`
+|The number of times the system change number has been checked for advancement and remains unchanged.
+This is an indicator that long-running transaction(s) are ongoing and preventing the connector from flushing the latest processed system change number to the connector's offsets.
+Under optimal operations, this should always be or remain close to `0`.
+
+|[[oracle-streaming-metrics-unparsable-ddl-count]]<<oracle-streaming-metrics-unparsable-ddl-count, `+UnparsableDdlCount+`>>
+|`int`
+|The number of DDL records that have been detected but could not be parsed by the DDL parser.
+This should always be `0`; however when allowing unparsable DDL to be skipped, this metric can be used to determine if any warnings have been written to the connector logs.
+
+|[[oracle-streaming-metrics-mining-session-user-global-area-memory-in-bytes]]<<oracle-streaming-metrics-mining-session-user-global-area-memory-in-bytes, `+MiningSessionUserGlobalAreaMemoryInBytes+`>>
+|`long`
+|The current mining session's user global area (UGA) memory consumption in bytes.
+
+|[[oracle-streaming-metrics-mining-session-user-global-area-max-memory-in-bytes]]<<oracle-streaming-metrics-mining-session-user-global-area-max-memory-in-bytes, `+MiningSessionUserGlobalAreaMaxMemoryInBytes+`>>
+|`long`
+|The maximum mining session's user global area (UGA) memory consumption in bytes across all mining sessions.
+
+|[[oracle-streaming-metrics-mining-session-process-global-area-memory-in-bytes]]<<oracle-streaming-metrics-mining-session-process-global-area-memory-in-bytes, `+MiningSessionProcessGlobalAreaMemoryInBytes+`>>
+|`long`
+|The current mining session's process global area (PGA) memory consumption in bytes.
+
+|[[oracle-streaming-metrics-mining-session-process-global-area-max-memory-in-bytes]]<<oracle-streaming-metrics-mining-session-process-global-area-max-memory-in-bytes, `+MiningSessionProcessGlobalAreaMaxMemoryInBytes+`>>
+|`long`
+|The maximum mining session's process global area (PGA) memory consumption in bytes across all mining sessions.
+
+|===
+

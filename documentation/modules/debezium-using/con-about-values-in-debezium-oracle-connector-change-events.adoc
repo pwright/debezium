@@ -1,0 +1,394 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-change-event-values
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Change event values
+
+[id="about-values-in-debezium-oracle-connector-change-events"]
+= About values in {prodname} Oracle connector change events
+
+Like the message key, the value of a change event message has a _schema_ section and _payload_ section.
+The payload section of every change event value produced by the Oracle connector has an _envelope_ structure with the following fields:
+
+`op`:: A mandatory field that contains a string value describing the type of operation. Values for the Oracle connector are `c` for create (or insert), `u` for update, `d` for delete, and `r` for read (in the case of a snapshot).
+`before`:: An optional field that, if present, contains the state of the row _before_ the event occurred. The structure is described by the `server1.INVENTORY.CUSTOMERS.Value` Kafka Connect schema, which the `server1` connector uses for all rows in the `inventory.customers` table.
+
+// [WARNING]
+// ====
+// Whether or not this field and its elements are available is highly dependent on the https://docs.oracle.com/database/121/SUTIL/GUID-D2DDD67C-E1CC-45A6-A2A7-198E4C142FA3.htm#SUTIL1583[Supplemental Logging] configuration applying to the table.
+// ====
+
+`after`:: An optional field that if present contains the state of the row _after_ the event occurred. The structure is described by the same `server1.INVENTORY.CUSTOMERS.Value` Kafka Connect schema used in `before`.
+`source`:: A mandatory field that contains a structure describing the source metadata for the event, which in the case of Oracle contains these fields: the {prodname} version, the connector name, whether the event is part of an ongoing snapshot or not, the transaction id (not while snapshotting), the SCN of the change, and a timestamp representing the point in time when the record was changed in the source database (during snapshotting, this is the point in time of snapshotting).
++
+[TIP]
+====
+The `commit_scn` field is optional and describes the SCN of the transaction commit that the change event participates within.
+This field is only present when using the LogMiner connection adapter.
+====
+
+`ts_ms`:: An optional field that, if present, contains the time (using the system clock in the JVM running the Kafka Connect task) at which the connector processed the event.
+
+And of course, the _schema_ portion of the event message's value contains a schema that describes this envelope structure and the nested fields within it.
+
+// Type: continue
+[[oracle-create-events]]
+._create_ events
+
+Let's look at what a _create_ event value might look like for our `customers` table:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+    "schema": {
+        "type": "struct",
+        "fields": [
+            {
+                "type": "struct",
+                "fields": [
+                    {
+                        "type": "int32",
+                        "optional": false,
+                        "field": "ID"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "FIRST_NAME"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "LAST_NAME"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "EMAIL"
+                    }
+                ],
+                "optional": true,
+                "name": "server1.DEBEZIUM.CUSTOMERS.Value",
+                "field": "before"
+            },
+            {
+                "type": "struct",
+                "fields": [
+                    {
+                        "type": "int32",
+                        "optional": false,
+                        "field": "ID"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "FIRST_NAME"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "LAST_NAME"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "EMAIL"
+                    }
+                ],
+                "optional": true,
+                "name": "server1.DEBEZIUM.CUSTOMERS.Value",
+                "field": "after"
+            },
+            {
+                "type": "struct",
+                "fields": [
+                    {
+                        "type": "string",
+                        "optional": true,
+                        "field": "version"
+                    },
+                    {
+                        "type": "string",
+                        "optional": false,
+                        "field": "name"
+                    },
+                    {
+                        "type": "int64",
+                        "optional": true,
+                        "field": "ts_ms"
+                    },
+                    {
+                        "type": "string",
+                        "optional": true,
+                        "field": "txId"
+                    },
+                    {
+                        "type": "string",
+                        "optional": true,
+                        "field": "scn"
+                    },
+                    {
+                        "type": "string",
+                        "optional": true,
+                        "field": "commit_scn"
+                    },
+                    {
+                        "type": "boolean",
+                        "optional": true,
+                        "field": "snapshot"
+                    }
+                ],
+                "optional": false,
+                "name": "io.debezium.connector.oracle.Source",
+                "field": "source"
+            },
+            {
+                "type": "string",
+                "optional": false,
+                "field": "op"
+            },
+            {
+                "type": "int64",
+                "optional": true,
+                "field": "ts_ms"
+            }
+        ],
+        "optional": false,
+        "name": "server1.DEBEZIUM.CUSTOMERS.Envelope"
+    },
+    "payload": {
+        "before": null,
+        "after": {
+            "ID": 1004,
+            "FIRST_NAME": "Anne",
+            "LAST_NAME": "Kretchmar",
+            "EMAIL": "annek@noanswer.org"
+        },
+        "source": {
+            "version": "{debezium-version}",
+            "name": "server1",
+            "ts_ms": 1520085154000,
+            "txId": "6.28.807",
+            "scn": "2122185",
+            "commit_scn": "2122185",
+            "snapshot": false
+        },
+        "op": "c",
+        "ts_ms": 1532592105975
+    }
+}
+----
+
+Examining the `schema` portion of the preceding event's _value_, we can see how the following schema are defined:
+
+* The _envelope_
+* The `source` structure (which is specific to the Oracle connector and reused across all events).
+* The table-specific schemas for the `before` and `after` fields.
+
+[TIP]
+====
+The names of the schemas for the `before` and `after` fields are of the form `_<logicalName>_._<schemaName>_._<tableName>_.Value`, and thus are entirely independent from the schemas for all other tables.
+This means that when using the xref:{link-avro-serialization}#avro-serialization[Avro Converter], the resulting Avro schems for _each table_ in each _logical source_ have their own evolution and history.
+====
+
+The `payload` portion of this event's _value_, provides information about the event.
+It describes that a row was created (`op=c`), and shows that the `after` field value contains the values that were inserted into the `ID`, `FIRST_NAME`, `LAST_NAME`, and `EMAIL` columns of the row.
+
+[TIP]
+====
+By default, the JSON representations of events are much larger than the rows they describe.
+The increased size results from the JSON representation including both the schema and payload portions of a message.
+You can use the xref:{link-avro-serialization}#avro-serialization[Avro Converter] to decrease the size of messages that the connector writes to Kafka topics.
+====
+
+// Type: continue
+[[oracle-update-events]]
+._update_ events
+The value of an _update_ change event on this table has the same _schema_ as the _create_ event. The payload uses the same structure, but it holds different values.
+Here's an example:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+    "schema": { ... },
+    "payload": {
+        "before": {
+            "ID": 1004,
+            "FIRST_NAME": "Anne",
+            "LAST_NAME": "Kretchmar",
+            "EMAIL": "annek@noanswer.org"
+        },
+        "after": {
+            "ID": 1004,
+            "FIRST_NAME": "Anne",
+            "LAST_NAME": "Kretchmar",
+            "EMAIL": "anne@example.com"
+        },
+        "source": {
+            "version": "{debezium-version}",
+            "name": "server1",
+            "ts_ms": 1520085811000,
+            "txId": "6.9.809",
+            "scn": "2125544",
+            "commit_scn": "2125544",
+            "snapshot": false
+        },
+        "op": "u",
+        "ts_ms": 1532592713485
+    }
+}
+----
+
+Comparing the value of the _update_ event to the _create_ (insert) event, notice the following differences in the `payload` section:
+
+* The `op` field value is now `u`, signifying that this row changed because of an update
+* The `before` field now has the state of the row with the values before the database commit
+* The `after` field now has the updated state of the row, and here was can see that the `EMAIL` value is now `anne@example.com`.
+* The `source` field structure has the same fields as before, but the values are different since this event is from a different position in the redo log.
+* The `ts_ms` shows the timestamp that {prodname} processed this event.
+
+The `payload` section reveals several other useful pieces of information.
+For example, by comparing the `before` and `after` structures, we can determine how a row changed as the result of a commit.
+The `source` structure provides information about Oracle's record of this change, providing traceability.
+It also gives us insight into when this event occurred in relation to other events in this topic and in other topics.
+Did it occur before, after, or as part of the same commit as another event?
+
+[NOTE]
+====
+When the columns for a row's primary/unique key are updated, the value of the row's key changes.
+As a result, {prodname} emits _three_ events after such an update:
+
+* A `DELETE` event.
+* A xref:{link-oracle-connector}#oracle-tombstone-events[tombstone event] with the old key for the row.
+* An `INSERT` event that provides the new key for the row.
+====
+
+// Type: continue
+[[oracle-delete-events]]
+._delete_ events
+
+So far we've seen samples of _create_ and _update_ events.
+Now, let's look at the value of a _delete_ event for the same table. As is the case with _create_ and _update_ events, for a `_delete_` event, the `schema` portion of the value is exactly the same:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+    "schema": { ... },
+    "payload": {
+        "before": {
+            "ID": 1004,
+            "FIRST_NAME": "Anne",
+            "LAST_NAME": "Kretchmar",
+            "EMAIL": "anne@example.com"
+        },
+        "after": null,
+        "source": {
+            "version": "{debezium-version}",
+            "name": "server1",
+            "ts_ms": 1520085153000,
+            "txId": "6.28.807",
+            "scn": "2122184",
+            "commit_scn": "2122184",
+            "snapshot": false
+        },
+        "op": "d",
+        "ts_ms": 1532592105960
+    }
+}
+----
+
+If we look at the `payload` portion, we see a number of differences compared with the _create_ or _update_ event payloads:
+
+* The `op` field value is now `d`, signifying that this row was deleted
+* The `before` field now has the state of the row that was deleted with the database commit.
+* The `after` field is null, signifying that the row no longer exists
+* The `source` field structure has many of the same values as before, except the `ts_ms`, `scn` and `txId` fields have changed
+* The `ts_ms` shows the timestamp that {prodname} processed this event.
+
+This event gives a consumer all kinds of information that it can use to process the removal of this row.
+
+The Oracle connector's events are designed to work with https://cwiki.apache.org/confluence/display/KAFKA/Log+Compaction[Kafka log compaction],
+which allows for the removal of some older messages as long as at least the most recent message for every key is kept.
+This allows Kafka to reclaim storage space while ensuring the topic contains a complete dataset and can be used for reloading key-based state.
+
+[[oracle-tombstone-events]]
+When a row is deleted, the _delete_ event value listed above still works with log compaction, since Kafka can still remove all earlier messages with that same key.
+The message value must be set to `null` to instruct Kafka to remove _all messages_ that share the same key.
+To make this possible, by default, {prodname}'s Oracle connector always follows a _delete_ event with a special _tombstone_ event that has the same key but `null` value.
+You can change the default behavior by setting the connector property xref:oracle-property-tombstones-on-delete[`tombstones.on.delete`].
+
+// Type: continue
+[[oracle-truncate-events]]
+._truncate_ events
+
+A  _truncate_ change event signals that a table has been truncated.
+The message key is `null` in this case, the message value looks like this:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+    "schema": { ... },
+    "payload": {
+        "before": null,
+        "after": null,
+        "source": { // <1>
+            "version": "{debezium-version}",
+            "connector": "oracle",
+            "name": "oracle_server",
+            "ts_ms": 1638974535000,
+            "snapshot": "false",
+            "db": "ORCLPDB1",
+            "sequence": null,
+            "schema": "DEBEZIUM",
+            "table": "TEST_TABLE",
+            "txId": "02000a0037030000",
+            "scn": "13234397",
+            "commit_scn": "13271102",
+            "lcr_position": null
+        },
+        "op": "t", // <2>
+        "ts_ms": 1638974558961, // <3>
+        "transaction": null
+    }
+}
+----
+
+.Descriptions of _truncate_ event value fields
+[cols="1,2,7",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`source`
+a|Mandatory field that describes the source metadata for the event. In a _truncate_ event value, the `source` field structure is the same as for _create_, _update_, and _delete_ events for the same table, provides this metadata:
+
+* {prodname} version
+* Connector type and name
+* Database and table that contains the new row
+* Schema name
+* If the event was part of a snapshot (always `false` for _truncate_ events)
+* ID of the transaction in which the operation was performed
+* SCN of the operation
+* Timestamp for when the change was made in the database
+
+|2
+|`op`
+a|Mandatory string that describes the type of operation. The `op` field value is `t`, signifying that this table was truncated.
+
+|3
+|`ts_ms`
+a|Optional field that displays the time at which the connector processed the event. The time is based on the system clock in the JVM running the Kafka Connect task.  +
++
+In the `source` object, `ts_ms` indicates the time that the change was made in the database. By comparing the value for `payload.source.ts_ms` with the value for `payload.ts_ms`, you can determine the lag between the source database update and {prodname}.
+
+|===
+
+Note that since _truncate_ events represent a change made to an entire table and don't have a message key,
+unless you're working with topics with a single partition,
+there are no ordering guarantees for the change events pertaining to a table (_create_, _update_, etc.) and _truncate_ events for that table.
+For instance a consumer may receive an _update_ event only after a _truncate_ event for that table,
+when those events are read from different partitions.
+
+If _truncate_ events are not desired, they can be filtered out with the xref:oracle-property-skipped-operations[`skipped.operations`] option.
+

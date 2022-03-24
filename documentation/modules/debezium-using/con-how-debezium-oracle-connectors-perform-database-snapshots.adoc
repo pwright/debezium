@@ -1,0 +1,63 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-snapshots
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Snapshots
+
+[id="how-debezium-oracle-connectors-perform-database-snapshots"]
+= How {prodname} Oracle connectors perform database snapshots
+
+Typically, the redo logs on an Oracle server are configured to not retain the complete history of the database.
+As a result, the {prodname} Oracle connector cannot retrieve the entire history of the database from the logs.
+To enable the connector to establish a baseline for the current state of the database, the first time that the connector starts, it performs an initial _consistent snapshot_ of the database.
+
+You can customize the way that the connector creates snapshots by setting the value of the xref:oracle-property-snapshot-mode[`snapshot.mode`] connector configuration property.
+By default, the connector's snapshot mode is set to `initial`.
+
+[[default-workflow-for-performing-an-initial-snapshot]]
+.Default connector workflow for creating an initial snapshot
+When the snapshot mode is set to the default, the connector completes the following tasks to create a snapshot:
+
+1. Determines the tables to be captured
+2. Obtains a `ROW SHARE MODE` lock on each of the monitored tables to prevent structural changes from occurring during creation of the snapshot. {prodname} holds the locks for only a short time.
+3. Reads the current system change number (SCN) position from the server's redo log.
+4. Captures the structure of all relevant tables.
+5. Releases the locks obtained in Step 2.
+6. Scans all of the relevant database tables and schemas as valid at the SCN position that was read in Step 3 (`SELECT * FROM ... AS OF SCN 123`), generates a `READ` event for each row, and then writes the event records to the table-specific Kafka topic.
+7. Records the successful completion of the snapshot in the connector offsets.
+
+After the snapshot process begins, if the process is interrupted due to connector failure, rebalancing, or other reasons, the process restarts after the connector restarts.
+After the connector completes the initial snapshot, it continues streaming from the position that it read in Step 3 so that it does not miss any updates.
+If the connector stops again for any reason, after it restarts, it resumes streaming changes from where it previously left off.
+
+[id="oracle-connector-snapshot-mode-options"]
+.Settings for `snapshot.mode` connector configuration property
+[cols="30%a,70%a",options="header"]
+|===
+|Setting |Description
+
+|`initial`
+|The connector performs a database snapshot as described in the xref:default-workflow-for-performing-an-initial-snapshot[default workflow for creating an initial snapshot].
+After the snapshot completes, the connector begins to stream event records for subsequent database changes.
+
+|`initial_only`
+|The connector performs a database snapshot and stops before streaming any change event records, not allowing any subsequent change events to be captured.
+
+|`schema_only`
+|The connector captures the structure of all relevant tables, performing all of the steps described in the xref:default-workflow-for-performing-an-initial-snapshot[default snapshot workflow], except that it does not create `READ` events to represent the data set at the point of the connector's start-up (Step 6).
+
+|`schema_only_recovery`
+|Set this option to restore a database history topic that is lost or corrupted.
+After a restart, the connector runs a snapshot that rebuilds the topic from the source tables.
+You can also set the property to periodically prune the database history topic that experience unexpected growth.
+Note this mode is only safe to be used when it is guaranteed that no schema changes happened since the point in time the connector was shut down before and the point in time the snapshot is taken.
+
+|===
+
+
+include::../../modules/debezium-using/con-debezium-oracle-ad-hoc-snapshots.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-oracle-incremental-snapshots.adoc[leveloffset=+1]
+

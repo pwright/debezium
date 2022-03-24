@@ -1,0 +1,87 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-when-things-go-wrong
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Behavior when things go wrong
+
+[id="how-debezium-oracle-connectors-handle-faults-and-problems"]
+= How {prodname} Oracle connectors handle faults and problems
+
+{prodname} is a distributed system that captures all changes in multiple upstream databases; it never misses or loses an event.
+When the system is operating normally or being managed carefully then {prodname} provides _exactly once_ delivery of every change event record.
+
+If a fault occurs, {prodname} does not lose any events.
+However, while it is recovering from the fault, it might repeat some change events.
+In these abnormal situations, {prodname}, like Kafka, provides _at least once_ delivery of change events.
+
+The rest of this section describes how {prodname} handles various kinds of faults and problems.
+
+[id="oracle-logs-do-not-contain-offset-perform-new-snapshot"]
+.Logs do not contain offset, perform a new snapshot
+
+In some cases, after the {prodname} Oracle connector restarts, it reports the following error:
+
+[source]
+----
+Online REDO LOG files or archive logs do not contain the offset scn xxxxxxx. Please perform a new snapshot.
+----
+
+After the connector examines the redo and archive logs, if it cannot find the SCN that is recorded in the connector offsets, it returns the preceding error.
+Because the connector uses the SCN to determine where to resume processing, if the expected SCN if not found, a new snapshot must be completed.
+
+You might find that the `V$ARCHIVED_LOG` table contains a record with an SCN that matches the expected range.
+However, the record might not be available for mining.
+To be available for mining, a record must include a filename in the `NAME` column, a value of `NO` in the `DELETED` column, and a value of `A` (available) in the `STATUS` column.
+If a record does not match any of these criteria, it is considered incomplete and cannot be mined.
+
+At a minimum, archive logs must be retained for as long as the longest downtime window of the connector.
+
+[NOTE]
+====
+Records that have no value in the `NAME` column no longer exist in the file system.
+In such records, the value of the `DELETED` field is set to `YES`, and the `STATUS` field is set to `D` to indicate that the log is deleted.
+====
+
+[id="oracle-cannot-reference-overflow-table"]
+.ORA-25191 - Cannot reference overflow table of an index-organized table
+
+Oracle might issue this error during the snapshot phase when encountering an index-organized table (IOT).
+This error means that the connector has attempted to execute an operation that must be executed against the parent index-organized table that contains the specified overflow table.
+
+To resolve this, the IOT name used in the SQL operation should be replaced with the parent index-organized table name.
+To determine the parent index-organized table name, use the following SQL:
+
+[source,sql]
+----
+SELECT IOT_NAME
+  FROM DBA_TABLES
+ WHERE OWNER='<tablespace-owner>'
+   AND TABLE_NAME='<iot-table-name-that-failed>'
+----
+
+The connector's `table.include.list` or `table.exclude.list` configuration options should then be adjusted to explicitly include or exclude the appropriate tables to avoid the connector from attempting to capture changes from the child index-organized table.
+
+[id="oracle-pga-aggregate-limit"]
+.ORA-04036: PGA memory used by the instance exceeds PGA_AGGREGATE_LIMIT
+
+Oracle may issue this error if you're connecting to a database that changes very infrequent.
+The {prodname} connector starts an Oracle LogMiner session and reuses this session until a log switch is detected.
+The reuse is both a performance and resource utilization optimization; however, a long-running mining session can cause high PGA memory usage.
+
+If your redo log switch frequency is low, you can avoid the ORA-04036 error by configuring Oracle to automatically switch logs on a defined frequency.
+A log switch causes the connector to restart the mining session, therefore avoiding high PGA memory usage.
+The following configuration forces Oracle to switch log files every 20 minutes if a log switch hasn't occurred within that window:
+
+[source,sql]
+----
+ALTER SYSTEM SET archive_log_target=1200 scope=both;
+----
+
+This change will likely require SYSDBA permissions, so coordinate with your database administrator.
+
+[id="oracle-sys-system-change-not-emitted"]
+.LogMiner adapter does not capture changes made by SYS or SYSTEM
+
+Oracle uses the `SYS` and `SYSTEM` accounts for lots of internal changes and therefore the connector automatically filters changes made by these users when fetching changes from LogMiner.
+Never use the `SYS` or `SYSTEM` user accounts for changes to be emitted by the {prodname} Oracle connector.

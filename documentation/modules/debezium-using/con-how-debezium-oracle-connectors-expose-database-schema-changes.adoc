@@ -1,0 +1,230 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: oracle-schema-change-topic
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Schema change topic
+
+[id="how-debezium-oracle-connectors-expose-database-schema-changes"]
+= How {prodname} Oracle connectors expose database schema changes
+
+You can configure a {prodname} Oracle connector to produce schema change events that describe schema changes that are applied to captured tables in the database.
+The connector writes schema change events to a Kafka topic named `_<serverName>_`, where `_serverName_` is the logical server name that is specified in the xref:oracle-property-database-server-name[`database.server.name`] configuration property.
+
+{prodname} emits a new message to this topic whenever it streams data from a new table.
+
+Messages that the connector sends to the schema change topic contain a payload, and, optionally, also contain the schema of the change event message.
+The payload of a schema change event message includes the following elements:
+
+`ddl`:: Provides the SQL `CREATE`, `ALTER`, or `DROP` statement that results in the schema change.
+`databaseName`:: The name of the database to which the statements are applied.
+The value of `databaseName` serves as the message key.
+`tableChanges`::  A structured representation of the entire table schema after the schema change.
+The `tableChanges` field contains an array that includes entries for each column of the table.
+Because the structured representation presents data in JSON or Avro format, consumers can easily read messages without first processing them through a DDL parser.
+
+[IMPORTANT]
+====
+When the connector is configured to capture a table, it stores the history of the table's schema changes not only in the schema change topic, but also in an internal database history topic.
+The internal database history topic is for connector use only and it is not intended for direct use by consuming applications.
+Ensure that applications that require notifications about schema changes consume that information only from the schema change topic.
+====
+
+[IMPORTANT]
+====
+Never partition the database history topic.
+For the database history topic to function correctly, it must maintain a consistent, global order of the event records that the connector emits to it.
+
+To ensure that the topic is not split among partitions, set the partition count for the topic by using one of the following methods:
+
+* If you create the database history topic manually, specify a partition count of `1`.
+* If you use the Apache Kafka broker to create the database history topic automatically, the topic is created, set the value of the link:{link-kafka-docs}/#brokerconfigs_num.partitions[Kafka `num.partitions`] configuration option to `1`.
+====
+
+ifdef::community[]
+[WARNING]
+====
+The schema change topic message format is in an incubating state and might change without notice.
+====
+endif::community[]
+
+ifdef::community[]
+{prodname} emits a new message to this topic whenever it streams data from a new table, or when the structure of the table is altered.
+
+[NOTE]
+====
+Following a change in table structure, you must follow (the xref:{link-oracle-connector}#oracle-schema-evolution[schema evolution procedure].
+====
+endif::community[]
+
+.Example: Message emitted to the Oracle connector schema change topic
+The following example shows a typical schema change message in JSON format.
+The message contains a logical representation of the table schema.
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+  "schema": {
+  ...
+  },
+  "payload": {
+    "source": {
+      "version": "{debezium-version}",
+      "connector": "oracle",
+      "name": "server1",
+      "ts_ms": 1588252618953,
+      "snapshot": "true",
+      "db": "ORCLPDB1",
+      "schema": "DEBEZIUM",
+      "table": "CUSTOMERS",
+      "txId" : null,
+      "scn" : "1513734",
+      "commit_scn": "1513734",
+      "lcr_position" : null
+    },
+    "databaseName": "ORCLPDB1", // <1>
+    "schemaName": "DEBEZIUM", //
+    "ddl": "CREATE TABLE \"DEBEZIUM\".\"CUSTOMERS\" \n   (    \"ID\" NUMBER(9,0) NOT NULL ENABLE, \n    \"FIRST_NAME\" VARCHAR2(255), \n    \"LAST_NAME" VARCHAR2(255), \n    \"EMAIL\" VARCHAR2(255), \n     PRIMARY KEY (\"ID\") ENABLE, \n     SUPPLEMENTAL LOG DATA (ALL) COLUMNS\n   ) SEGMENT CREATION IMMEDIATE \n  PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 \n NOCOMPRESS LOGGING\n  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645\n  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1\n  BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)\n  TABLESPACE \"USERS\" ", // <2>
+    "tableChanges": [ // <3>
+      {
+        "type": "CREATE", // <4>
+        "id": "\"ORCLPDB1\".\"DEBEZIUM\".\"CUSTOMERS\"", // <5>
+        "table": { // <6>
+          "defaultCharsetName": null,
+          "primaryKeyColumnNames": [ // <7>
+            "ID"
+          ],
+          "columns": [ // <8>
+            {
+              "name": "ID",
+              "jdbcType": 2,
+              "nativeType": null,
+              "typeName": "NUMBER",
+              "typeExpression": "NUMBER",
+              "charsetName": null,
+              "length": 9,
+              "scale": 0,
+              "position": 1,
+              "optional": false,
+              "autoIncremented": false,
+              "generated": false
+            },
+            {
+              "name": "FIRST_NAME",
+              "jdbcType": 12,
+              "nativeType": null,
+              "typeName": "VARCHAR2",
+              "typeExpression": "VARCHAR2",
+              "charsetName": null,
+              "length": 255,
+              "scale": null,
+              "position": 2,
+              "optional": false,
+              "autoIncremented": false,
+              "generated": false
+            },
+            {
+              "name": "LAST_NAME",
+              "jdbcType": 12,
+              "nativeType": null,
+              "typeName": "VARCHAR2",
+              "typeExpression": "VARCHAR2",
+              "charsetName": null,
+              "length": 255,
+              "scale": null,
+              "position": 3,
+              "optional": false,
+              "autoIncremented": false,
+              "generated": false
+            },
+            {
+              "name": "EMAIL",
+              "jdbcType": 12,
+              "nativeType": null,
+              "typeName": "VARCHAR2",
+              "typeExpression": "VARCHAR2",
+              "charsetName": null,
+              "length": 255,
+              "scale": null,
+              "position": 4,
+              "optional": false,
+              "autoIncremented": false,
+              "generated": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+----
+
+.Descriptions of fields in messages emitted to the schema change topic
+[cols="1,4,5",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`databaseName` +
+`schemaName`
+|Identifies the database and the schema that contains the change.
+
+|2
+|`ddl`
+|This field contains the DDL that is responsible for the schema change.
+
+|3
+|`tableChanges`
+|An array of one or more items that contain the schema changes generated by a DDL command.
+
+|4
+|`type`
+a|Describes the kind of change. The value is one of the following:
+
+`CREATE`:: Table created.
+`ALTER`:: Table modified.
+`DROP`:: Table deleted.
+
+|5
+|`id`
+|Full identifier of the table that was created, altered, or dropped.
+In the case of a table rename, this identifier is a concatenation of `_<old>_,_<new>_` table names.
+
+|6
+|`table`
+|Represents table metadata after the applied change.
+
+|7
+|`primaryKeyColumnNames`
+|List of columns that compose the table's primary key.
+
+|8
+|`columns`
+|Metadata for each column in the changed table.
+
+|===
+
+In messages that the connector sends to the schema change topic, the message key is the name of the database that contains the schema change.
+In the following example, the `payload` field contains the key:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+  "schema": {
+    "type": "struct",
+    "fields": [
+      {
+        "type": "string",
+        "optional": false,
+        "field": "databaseName"
+      }
+    ],
+    "optional": false,
+    "name": "io.debezium.connector.oracle.SchemaChangeKey"
+  },
+  "payload": {
+    "databaseName": "ORCLPDB1"
+  }
+}
+----
+

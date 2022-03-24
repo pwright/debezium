@@ -1,0 +1,35 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: scn-jumps
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: SCN gap detection
+
+[id="debezium-oracle-connector-scn-gap-detection"]
+= Gaps between Oracle SCN values
+
+When the {prodname} Oracle connector is configured to use LogMiner, it collects change events from Oracle by using a start and end range that is based on system change numbers (SCNs).
+The connector manages this range automatically, increasing or decreasing the range depending on whether the connector is able to stream changes in near real-time, or must process a backlog because of large or bulk transactions in the database.
+
+Under certain circumstances, the Oracle database advances the system change number by an unusually high amount, rather than increasing it at a constant rate.
+Such a jump in the SCN value can occur because of the way that a particular integration interacts with the database, or as a result of events such as hot backups.
+
+The {prodname} Oracle connector relies on the following configuration properties to detect the SCN gap and adjust the mining range.
+
+`log.mining.scn.gap.detection.gap.size.min`:: Specifies the minimum gap size.
+`log.mining.scn.gap.detection.time.interval.max.ms`:: Specifies the maximum time interval.
+
+The connector first compares the difference in the number of changes between the current SCN and the highest SCN in the current mining range.
+If this difference is greater than the minimum gap size, then the connector has potentially detected a SCN gap.
+To confirm whether a gap exists, the connector next compares the timestamps of the current SCN and the SCN at the end of the previous mining range.
+If the difference between the timestamps is less than the maximum time interval, then the existence of an SCN gap is confirmed.
+
+When an SCN gap occurs, the {prodname} connector automatically uses the current SCN as the end point for the range of the current mining session.
+This allows the connector to quickly catch up to the real-time events without mining smaller ranges in between that return no changes because the SCN value was increased by an unexpectedly large number.
+Additionally, the connector will ignore the mining maximum batch size for this iteration only when this occurs.
+
+[WARNING]
+====
+SCN gap detection is available only if the large SCN increment occurs while the connector is running and processing near real-time events.
+====
+

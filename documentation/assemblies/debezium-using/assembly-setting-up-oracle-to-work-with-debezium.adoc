@@ -1,0 +1,65 @@
+// Metadata created by nebel
+//
+// ConversionStatus: raw
+// ConvertedFromID: setting-up-oracle
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConvertedFromTitle: Setting up Oracle
+
+[id="setting-up-oracle-to-work-with-debezium"]
+= Setting up Oracle to work with {prodname}
+
+The following steps are necessary to set up Oracle for use with the {prodname} Oracle connector.
+These steps assume the use of the multi-tenancy configuration with a container database and at least one pluggable database.
+If you do not intend to use a multi-tenant configuration, it might be necessary to adjust the following steps.
+
+For information about using Vagrant to set up Oracle in a virtual machine, see the https://github.com/debezium/oracle-vagrant-box/[Debezium Vagrant Box for Oracle database] GitHub repository.
+
+ifdef::product[]
+
+For details about setting up Oracle for use with the {prodname} connector, see the following sections:
+
+* xref:preparing-oracle-databases-for-use-with-debezium[]
+* xref:oracle-redo-log-sizing[]
+* xref:creating-an-oracle-user-for-the-debezium-oracle-connector[]
+
+endif::product[]
+
+.Compatibility with Oracle installation types
+
+ifdef::community[]
+An Oracle database can be installed either as a standalone instance or using Oracle Real Application Cluster (RAC).
+The {prodname} Oracle connector is compatible with both types of installation.
+endif::community[]
+ifdef::product[]
+The {prodname} Oracle connector is compatible with Oracle installed as a standalone instance.
+endif::product[]
+
+
+include::../../modules/debezium-using/proc-preparing-oracle-databases-for-use-with-debezium.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-oracle-redo-log-sizing.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/proc-creating-an-oracle-user-for-the-debezium-oracle-connector.adoc[leveloffset=+1]
+
+.Standby databases
+ifdef::product[]
+The {prodname} Oracle connector cannot be used with Oracle physical or logical standby databases.
+endif::product[]
+ifdef::community[]
+An Oracle database can be configured with either a physical or a logical standby environment to provide for recovery after of a production failure.
+At this time, the {prodname} Oracle connector cannot use a physical or logical standby database as the change event source.
+There is an open https://issues.redhat.com/browse/DBZ-3866[Jira issue] to investigate this support.
+
+.Failover databases
+
+It is customary for a logical or physical standby to exist in the case of an Oracle production failure.
+When a failure occurs and the standby instance is promoted to production, the database must be opened for read/write transactions before the {prodname} Oracle connector can connect to the database.
+
+In the case of a physical standby, the standby is an exact copy of production, which implies that the SCN values are identical.
+When using a physical standby, it is sufficient to reconfigure the {prodname} Oracle connector to use the hostname of the standby once the database is open.
+
+In the case of a logical standby, the standby is not an exact copy of the production database, so the SCN offsets in the standby differ from those in the production database.
+If you use a logical standby, to help ensure that {prodname} does not miss any change events, after the database is open, configure a new connector and perform a new database snapshot.
+endif::community[]
