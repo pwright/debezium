@@ -1,3 +1,19 @@
+This content is for testing only
+
+The context is `{context}`.
+
+ifeval::["{context}" == "oracle"]
+          - type: jar          // <8>
+            url:  https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/{ojdbc8-version}/ojdbc8-{ojdbc8-version}.jar
+endif::[]
+
+ifeval::["{context}" == "db2"]
+          - type: jar          // <8>
+            url: some other url
+endif::[]
+
+include::test-{context}.adoc[]
+
 By default, a connector runs an initial snapshot operation only after it starts for the first time.
 Following this initial snapshot, under normal circumstances, the connector does not repeat the snapshot process.
 Any future change event data that the connector captures comes in through the streaming process only.
