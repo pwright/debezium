@@ -12,7 +12,7 @@ content:
 
 ui:
   bundle:
-    url: ./ui-preview-bundle.zip
+    url:  ./node_modules/@djencks/tabset-block-ui/build/tabset-block-ui-bundle.zip
     snapshot: true
   output_dir: debezium-antora
 
@@ -24,6 +24,8 @@ output:
 
 # See notes about this section in playbook.yml.
 asciidoc:
+  extensions:
+    - '@djencks/asciidoctor-tabset-block'
   attributes:
     prodname: 'Debezium'
     context@: 'debezium'

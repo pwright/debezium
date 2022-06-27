@@ -1,0 +1,39 @@
+
+[tabset]
+====
+
+db2::
++
+--
+[discrete]
+include::modules/debezium-using/con-overview-of-debezium-db2-connector.adoc[]
+--
+
+oracle::
++
+--
+[discrete]
+include::assemblies/debezium-using/assembly-debezium-connector-for-oracle.adoc[]
+--
+
+Tab C::
++
+--
+* A multilevel list
+** level 2
+*** level 3
+** level 2
+* level 1
+--
+
+Tab D::
++
+--
+A multilevel description list::
+It's all about descriptions!
+2nd Level:::
+With lots of details!
+3rd Level::::
+And nit-picky micro-details!
+--
+====
