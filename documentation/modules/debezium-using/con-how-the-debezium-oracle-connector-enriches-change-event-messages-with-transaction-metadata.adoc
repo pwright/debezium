@@ -1,10 +1,11 @@
 // Metadata created by nebel
 //
-// ConversionStatus: raw
+// ConvertedFromTitle: Change data event enrichment
 // ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
 
-[id="debezium-oracle-connector-change-data-event-enrichment"]
-= Change data event enrichment
+[id="how-the-debezium-oracle-connector-enriches-change-event-messages-with-transaction-metadata"]
+= How the {prodname} Oracle connector enriches change event messages with transaction metadata
 
 When transaction metadata is enabled, the data message `Envelope` is enriched with a new `transaction` field.
 This field provides information about every event in the form of a composite of fields:

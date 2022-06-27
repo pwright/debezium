@@ -1,0 +1,21 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Change-data tables
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+
+[id="how-debezium-db2-connectors-read-change-data-tables"]
+= How {prodname} Db2 connectors read change-data tables
+
+After a complete snapshot, when a {prodname} Db2 connector starts for the first time, the connector identifies the change-data table for each source table that is in capture mode.
+The connector does the following for each change-data table:
+
+. Reads change events that were created between the last stored, highest LSN and the current, highest LSN.
+. Orders the change events according to the commit LSN and the change LSN for each event.
+  This ensures that the connector emits the change events in the order in which the table changes occurred.
+. Passes commit and change LSNs as offsets to Kafka Connect.
+. Stores the highest LSN that the connector passed to Kafka Connect.
+
+After a restart, the connector resumes emitting change events from the offset (commit and change LSNs) where it left off.
+While the connector is running and emitting change events, if you remove a table from capture mode or add a table to capture mode, the connector detects the change, and modifies its behavior accordingly.
+

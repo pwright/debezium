@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Snapshots
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-snapshots
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Snapshots
 
 [id="how-debezium-oracle-connectors-perform-database-snapshots"]
 = How {prodname} Oracle connectors perform database snapshots
@@ -19,8 +19,8 @@ By default, the connector's snapshot mode is set to `initial`.
 .Default connector workflow for creating an initial snapshot
 When the snapshot mode is set to the default, the connector completes the following tasks to create a snapshot:
 
-1. Determines the tables to be captured
-2. Obtains a `ROW SHARE MODE` lock on each of the monitored tables to prevent structural changes from occurring during creation of the snapshot. {prodname} holds the locks for only a short time.
+1. Determines the tables to be captured.
+2. Obtains a `ROW SHARE MODE` lock on each of the captured tables to prevent structural changes from occurring during creation of the snapshot. {prodname} holds the locks for only a short time.
 3. Reads the current system change number (SCN) position from the server's redo log.
 4. Captures the structure of all relevant tables.
 5. Releases the locks obtained in Step 2.
@@ -50,10 +50,12 @@ After the snapshot completes, the connector begins to stream event records for s
 |`schema_only_recovery`
 |Set this option to restore a database history topic that is lost or corrupted.
 After a restart, the connector runs a snapshot that rebuilds the topic from the source tables.
-You can also set the property to periodically prune the database history topic that experience unexpected growth.
-Note this mode is only safe to be used when it is guaranteed that no schema changes happened since the point in time the connector was shut down before and the point in time the snapshot is taken.
-
+You can also set the property to periodically prune a database history topic that experiences unexpected growth. +
+ +
+WARNING: Do not use this mode to perform a snapshot if schema changes were committed to the database after the last connector shutdown.
 |===
+
+For more information, see xref:oracle-property-snapshot-mode[`snapshot.mode`] in the table of connector configuration properties.
 
 
 include::../../modules/debezium-using/con-debezium-oracle-ad-hoc-snapshots.adoc[leveloffset=+1]

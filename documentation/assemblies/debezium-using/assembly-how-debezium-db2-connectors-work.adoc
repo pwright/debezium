@@ -1,0 +1,36 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: How the connector works
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: how-the-db2-connector-works
+
+[id="how-debezium-db2-connectors-work"]
+= How {prodname} Db2 connectors work
+
+To optimally configure and run a {prodname} Db2 connector, it is helpful to understand how the connector performs snapshots, streams change events, determines Kafka topic names, and handles schema changes.
+
+Details are in the following topics:
+
+* xref:how-debezium-db2-connectors-perform-database-snapshots[]
+* xref:how-debezium-db2-connectors-read-change-data-tables[]
+* xref:default-names-of-kafka-topics-that-receive-db2-change-event-records[]
+* xref:about-the-debezium-db2-connector-schema-change-topic[]
+* xref:debezium-db2-connector-generated-events-that-represent-transaction-boundaries[]
+
+
+
+include::../../modules/debezium-using/con-how-debezium-db2-connectors-perform-database-snapshots.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-how-debezium-db2-connectors-read-change-data-tables.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-default-names-of-kafka-topics-that-receive-db2-change-event-records.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-about-the-debezium-db2-connector-schema-change-topic.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-debezium-db2-connector-generated-events-that-represent-transaction-boundaries.adoc[leveloffset=+1]
+

@@ -1,0 +1,75 @@
+// Metadata created by nebel
+//
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+
+[id="debezium-connector-for-db2"]
+= {prodname} connector for Db2
+
+:context: db2
+:data-collection: table
+:mbean-name: {context}
+:connector-file: {context}
+:connector-class: Db2Connector
+:connector-name: Db2
+
+{prodname}'s Db2 connector can capture row-level changes in the tables of a Db2 database.
+For information about the Db2 Database versions that are compatible with this connector, see the link:{LinkDebeziumSupportedConfigurations}[{NameDebeziumSupportedConfigurations}].
+
+This connector is strongly inspired by the {prodname} implementation of SQL Server, which uses a SQL-based polling model that puts tables into "capture mode". When a table is in capture mode, the {prodname} Db2 connector generates and streams a change event for each row-level update to that table.
+
+A table that is in capture mode has an associated change-data table, which Db2 creates. For each change to a table that is in capture mode, Db2 adds data about that change to the table's associated change-data table. A change-data table contains an entry for each state of a row. It also has special entries for deletions. The {prodname} Db2 connector reads change events from change-data tables and emits the events to Kafka topics.
+
+The first time a {prodname} Db2 connector connects to a Db2 database, the connector reads a consistent snapshot of the tables for which the connector is configured to capture changes. By default, this is all non-system tables. There are connector configuration properties that let you specify which tables to put into capture mode, or which tables to exclude from capture mode.
+
+When the snapshot is complete the connector begins emitting change events for committed updates to tables that are in capture mode. By default, change events for a particular table go to a Kafka topic that has the same name as the table. Applications and services consume change events from these topics.
+
+[NOTE]
+====
+The connector requires the use of the abstract syntax notation (ASN) libraries, which are available as a standard part of Db2 for Linux.
+To use the ASN libraries, you must have a license for IBM InfoSphere Data Replication (IIDR).
+You do not have to install IIDR to use the ASN libraries.
+====
+
+
+
+Information and procedures for using a {prodname} Db2 connector is organized as follows:
+
+* xref:overview-of-debezium-db2-connector[]
+* xref:how-debezium-db2-connectors-work[]
+* xref:descriptions-of-debezium-db2-connector-data-change-events[]
+* xref:how-debezium-db2-connectors-map-data-types[]
+* xref:setting-up-db2-to-run-a-debezium-connector[]
+* xref:deployment-of-debezium-db2-connectors[]
+* xref:monitoring-debezium-db2-connector-performance[]
+* xref:managing-debezium-db2-connectors[]
+* xref:updating-schemas-for-db2-tables-in-capture-mode-for-debezium-connectors[]
+
+
+
+include::../../modules/debezium-using/con-overview-of-debezium-db2-connector.adoc[leveloffset=+1]
+
+
+include::../../assemblies/debezium-using/assembly-how-debezium-db2-connectors-work.adoc[leveloffset=+1]
+
+
+include::../../assemblies/debezium-using/assembly-descriptions-of-debezium-db2-connector-data-change-events.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-how-debezium-db2-connectors-map-data-types.adoc[leveloffset=+1]
+
+
+include::../../assemblies/debezium-using/assembly-setting-up-db2-to-run-a-debezium-connector.adoc[leveloffset=+1]
+
+
+include::../../assemblies/debezium-using/assembly-deployment-of-debezium-db2-connectors.adoc[leveloffset=+1]
+
+
+include::../../assemblies/debezium-using/assembly-monitoring-debezium-db2-connector-performance.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-managing-debezium-db2-connectors.adoc[leveloffset=+1]
+
+
+include::../../assemblies/debezium-using/assembly-updating-schemas-for-db2-tables-in-capture-mode-for-debezium-connectors.adoc[leveloffset=+1]
+

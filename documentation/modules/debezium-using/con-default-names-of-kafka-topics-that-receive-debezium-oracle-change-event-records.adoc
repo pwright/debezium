@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Topic names
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-topic-names
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Topic names
 
 [id="default-names-of-kafka-topics-that-receive-debezium-oracle-change-event-records"]
 = Default names of Kafka topics that receive {prodname} Oracle change event records

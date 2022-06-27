@@ -1,0 +1,27 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Low change frequency offset management
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
+// ConvertedFromID: low-change-frequency-offset-management
+
+[id="how-debezium-manages-offsets-in-databases-that-change-infrequently"]
+= How {prodname} manages offsets in databases that change infrequently
+
+The {prodname} Oracle connector tracks system change numbers in the connector offsets so that when the connector is restarted, it can begin where it left off.
+These offsets are part of each emitted change event; however, when the frequency of database changes are low (every few hours or days), the offsets can become stale and prevent the connector from successfully restarting if the system change number is no longer available in the transaction logs.
+
+For connectors that use non-CDB mode to connect to Oracle, you can enable xref:oracle-property-heartbeat-interval-ms[`heartbeat.interval.ms`] to force the connector to emit a heartbeat event at regular intervals so that offsets remain synchronized.
+
+For connectors that use CDB mode to connect to Oracle, maintaining synchronization is more complicated.
+Not only must you set xref:oracle-property-heartbeat-interval-ms[`heartbeat.interval.ms`], but it's also necessary to set xref:oracle-property-heartbeat-action-query[`heartbeat.action.query`].
+Specifying both properties is required, because in CDB mode, the connector specifically tracks changes inside the PDB only.
+A supplementary mechanism is needed to trigger change events from within the pluggable database.
+At regular intervals, the heartbeat action query causes the connector to insert a new table row, or update an existing row in the pluggable database.
+{prodname} detects the table changes and emits change events for them, ensuring that offsets remain synchronized, even in pluggable databases that process changes infrequently.
+
+[NOTE]
+====
+For the connector to use the `heartbeat.action.query` with tables that are not owned by the xref:creating-users-for-the-connector[connector user account], you must grant the connector user permission to run the necessary `INSERT` or `UPDATE` queries on those tables.
+====
+

@@ -1,0 +1,46 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Online schema update
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-hot-schema-update
+
+[id="performing-online-schema-updates-for-debezium-db2-connectors"]
+= Performing online schema updates for {prodname} Db2 connectors
+
+An online schema update does not require application and data processing downtime. That is, you do not stop the {prodname} Db2 connector before you perform an online schema update. Also, an online schema update procedure is simpler than the procedure for an offline schema update.
+
+However, when a table is in capture mode, after a change to a column name, the Db2 replication feature continues to use the old column name. The new column name does not appear in {prodname} change events. You must restart the connector to see the new column name in change events.
+
+.Prerequisites
+
+* One or more tables that are in capture mode require schema updates.
+
+.Procedure when adding a column to the end of a table
+
+. Lock the source tables whose schema you want to change.
+. In the ASN register table, mark the locked tables as `INACTIVE`.
+. xref:{link-db2-connector}#debezium-db2-reinitialize-asn-service[Reinitialize the ASN capture service.]
+. Apply all changes to the schemas for the source tables.
+. Apply all changes to the schemas for the corresponding change-data tables.
+. In the ASN register table, mark the source tables as `ACTIVE`.
+. xref:{link-db2-connector}#debezium-db2-reinitialize-asn-service[Reinitialize the ASN capture service.]
+. Optional. Restart the connector to see updated column names in change events.
+
+.Procedure when adding a column to the middle of a table
+
+. Lock the source table(s) to be changed.
+. In the ASN register table, mark the locked tables as `INACTIVE`.
+. xref:{link-db2-connector}#debezium-db2-reinitialize-asn-service[Reinitialize the ASN capture service.]
+. For each source table to be changed:
+.. Export the data in the source table.
+.. Truncate the source table.
+.. Alter the source table and add the column.
+.. Load the exported data into the altered source table.
+.. Export the data in the source table's corresponding change-data table.
+.. Truncate the change-data table.
+.. Alter the change-data table and add the column.
+.. Load the exported data into the altered change-data table.
+. In the ASN register table, mark the tables as `INACTIVE`. This marks the old change-data tables as inactive, which allows the data in them to remain but they are no longer updated.
+. xref:{link-db2-connector}#debezium-db2-reinitialize-asn-service[Reinitialize the ASN capture service.]
+. Optional. Restart the connector to see updated column names in change events.

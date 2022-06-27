@@ -1,0 +1,24 @@
+// Metadata created by nebel
+//
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+
+[id="effect-of-db2-capture-agent-configuration-on-server-load-and-latency"]
+= Effect of Db2 capture agent configuration on server load and latency
+
+When a database administrator enables change data capture for a source table, the capture agent begins to run.
+The agent reads new change event records from the transaction log and replicates the event records to a capture table.
+Between the time that a change is committed in the source table, and the time that the change appears in the corresponding change table, there is always a small latency interval.
+This latency interval represents a gap between when changes occur in the source table and when they become available for {prodname} to stream to Apache Kafka.
+
+Ideally, for applications that must respond quickly to changes in data, you want to maintain close synchronization between the source and capture tables.
+You might imagine that running the capture agent to continuously process change events as rapidly as possible might result in increased throughput and reduced latency --
+populating change tables with new event records as soon as possible after the events occur, in near real time.
+However, this is not necessarily the case.
+There is a performance penalty to pay in the pursuit of more immediate synchronization.
+Each time that the change agent queries the database for new event records, it increases the CPU load on the database host.
+The additional load on the server can have a negative effect on overall database performance, and potentially reduce transaction efficiency, especially during times of peak database use.
+
+It's important to monitor database metrics so that you know if the database reaches the point where the server can no longer support the capture agent's level of activity.
+If you experience performance issues while running the capture agent, adjust capture agent settings to reduce CPU load.
+

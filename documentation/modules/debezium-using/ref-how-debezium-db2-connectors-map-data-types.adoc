@@ -1,0 +1,287 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Data type mappings
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-data-types
+
+[id="how-debezium-db2-connectors-map-data-types"]
+= How {prodname} Db2 connectors map data types
+
+Db2's data types are described in https://www.ibm.com/support/knowledgecenter/en/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0008483.html[Db2 SQL Data Types].
+
+The Db2 connector represents changes to rows with events that are structured like the table in which the row exists. The event contains a field for each column value. How that value is represented in the event depends on the Db2 data type of the column. This section describes these mappings.
+If the default data type conversions do not meet your needs, you can {link-prefix}:{link-custom-converters}#custom-converters[create a custom converter] for the connector.
+
+Details are in the following sections:
+
+* xref:db2-basic-types[]
+* xref:db2-temporal-types[]
+* xref:db2-timestamp-types[]
+* xref:db2-decimal-types[]
+
+
+[id="db2-basic-types"]
+.Basic types
+
+The following table describes how the connector maps each of the Db2 data types to a _literal type_ and a _semantic type_ in event fields.
+
+* _literal type_ describes how the value is represented using Kafka Connect schema types: `INT8`, `INT16`, `INT32`, `INT64`, `FLOAT32`, `FLOAT64`, `BOOLEAN`, `STRING`, `BYTES`, `ARRAY`, `MAP`, and `STRUCT`.
+
+* _semantic type_ describes how the Kafka Connect schema captures the _meaning_ of the field using the name of the Kafka Connect schema for the field.
+
+.Mappings for Db2 basic data types
+[cols="25%a,20%a,55%a",options="header"]
+|===
+|Db2 data type
+|Literal type (schema type)
+|Semantic type (schema name) and Notes
+
+|`BOOLEAN`
+|`BOOLEAN`
+|Only snapshots can be taken from tables with BOOLEAN type columns. Currently SQL Replication on Db2 does not support BOOLEAN, so Debezium can not perform CDC on those tables. Consider using a different type.
+
+
+|`BIGINT`
+|`INT64`
+|n/a
+
+|`BINARY`
+|`BYTES`
+|n/a
+
+|`BLOB`
+|`BYTES`
+|n/a
+
+|`CHAR[(N)]`
+|`STRING`
+|n/a
+
+|`CLOB`
+|`STRING`
+|n/a
+
+|`DATE`
+|`INT32`
+|`io.debezium.time.Date` +
+ +
+String representation of a timestamp without timezone information
+
+|`DECFLOAT`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal`
+
+|`DECIMAL`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal`
+
+|`DBCLOB`
+|`STRING`
+|n/a
+
+|`DOUBLE`
+|`FLOAT64`
+|n/a
+
+|`INTEGER`
+|`INT32`
+|n/a
+
+|`REAL`
+|`FLOAT32`
+|n/a
+
+|`SMALLINT`
+|`INT16`
+|n/a
+
+|`TIME`
+|`INT32`
+|`io.debezium.time.Time` +
+ +
+String representation of a time without timezone information
+
+|`TIMESTAMP`
+|`INT64`
+|`io.debezium.time.MicroTimestamp` +
+ +
+String representation of a timestamp without timezone information
+
+|`VARBINARY`
+|`BYTES`
+|n/a
+
+|`VARCHAR[(N)]`
+|`STRING`
+|n/a
+
+|`VARGRAPHIC`
+|`STRING`
+|n/a
+
+|`XML`
+|`STRING`
+|`io.debezium.data.Xml` +
+ +
+String representation of an XML document
+|===
+
+If present, a column's default value is propagated to the corresponding field's Kafka Connect schema. Change events contain the field's default value unless an explicit column value had been given. Consequently, there is rarely a need to obtain the default value from the schema.
+
+[[db2-temporal-types]]
+.Temporal types
+
+Other than Db2's `DATETIMEOFFSET` data type, which contains time zone information, how temporal types are mapped depends on the value of the `time.precision.mode` connector configuration property. The following sections describe these mappings:
+
+* xref:db2-time-precision-mode-adaptive[`time.precision.mode=adaptive`]
+* xref:db2-time-precision-mode-connect[`time.precision.mode=connect`]
+
+[[db2-time-precision-mode-adaptive]]
+.`time.precision.mode=adaptive`
+When the `time.precision.mode` configuration property is set to `adaptive`, the default, the connector determines the literal type and semantic type based on the column's data type definition. This ensures that events _exactly_ represent the values in the database.
+
+.Mappings when `time.precision.mode` is `adaptive`
+[cols="25%a,20%a,55%a",options="header"]
+|===
+|Db2 data type |Literal type (schema type) |Semantic type (schema name) and Notes
+
+|`DATE`
+|`INT32`
+|`io.debezium.time.Date` +
+ +
+Represents the number of days since the epoch.
+
+|`TIME(0)`, `TIME(1)`, `TIME(2)`, `TIME(3)`
+|`INT32`
+|`io.debezium.time.Time` +
+ +
+Represents the number of milliseconds past midnight, and does not include timezone information.
+
+|`TIME(4)`, `TIME(5)`, `TIME(6)`
+|`INT64`
+|`io.debezium.time.MicroTime` +
+ +
+Represents the number of microseconds past midnight, and does not include timezone information.
+
+|`TIME(7)`
+|`INT64`
+|`io.debezium.time.NanoTime` +
+ +
+Represents the number of nanoseconds past midnight, and does not include timezone information.
+
+|`DATETIME`
+|`INT64`
+|`io.debezium.time.Timestamp` +
+ +
+Represents the number of milliseconds since the epoch, and does not include timezone information.
+
+|`SMALLDATETIME`
+|`INT64`
+|`io.debezium.time.Timestamp` +
+ +
+Represents the number of milliseconds since the epoch, and does not include timezone information.
+
+|`DATETIME2(0)`, `DATETIME2(1)`, `DATETIME2(2)`, `DATETIME2(3)`
+|`INT64`
+|`io.debezium.time.Timestamp` +
+ +
+Represents the number of milliseconds since the epoch, and does not include timezone information.
+
+|`DATETIME2(4)`, `DATETIME2(5)`, `DATETIME2(6)`
+|`INT64`
+|`io.debezium.time.MicroTimestamp` +
+ +
+Represents the number of microseconds since the epoch, and does not include timezone information.
+
+|`DATETIME2(7)`
+|`INT64`
+|`io.debezium.time.NanoTimestamp` +
+ +
+Represents the number of nanoseconds past the epoch, and does not include timezone information.
+|===
+
+[[db2-time-precision-mode-connect]]
+.`time.precision.mode=connect`
+When the `time.precision.mode` configuration property is set to `connect`, the connector uses Kafka Connect logical types. This may be useful when consumers can handle only the built-in Kafka Connect logical types and are unable to handle variable-precision time values. However, since Db2 supports tenth of a microsecond precision, the events generated by a connector with the `connect` time precision *results in a loss of precision* when the database column has a _fractional second precision_ value that is greater than 3.
+
+.Mappings when `time.precision.mode` is `connect`
+[cols="25%a,20%a,55%a",options="header"]
+|===
+|Db2 data type |Literal type (schema type) |Semantic type (schema name) and Notes
+
+|`DATE`
+|`INT32`
+|`org.apache.kafka.connect.data.Date` +
+ +
+Represents the number of days since the epoch.
+
+|`TIME([P])`
+|`INT64`
+|`org.apache.kafka.connect.data.Time` +
+ +
+Represents the number of milliseconds since midnight, and does not include timezone information. Db2 allows `P` to be in the range 0-7 to store up to tenth of a microsecond precision, though this mode results in a loss of precision when `P` is greater than 3.
+
+|`DATETIME`
+|`INT64`
+|`org.apache.kafka.connect.data.Timestamp` +
+ +
+Represents the number of milliseconds since the epoch, and does not include timezone information.
+
+|`SMALLDATETIME`
+|`INT64`
+|`org.apache.kafka.connect.data.Timestamp` +
+ +
+Represents the number of milliseconds since the epoch, and does not include timezone information.
+
+|`DATETIME2`
+|`INT64`
+|`org.apache.kafka.connect.data.Timestamp` +
+ +
+Represents the number of milliseconds since the epoch, and does not include timezone information. Db2 allows `P` to be in the range 0-7 to store up to tenth of a microsecond precision, though this mode results in a loss of precision when `P` is greater than 3.
+|===
+
+[[db2-timestamp-types]]
+.Timestamp types
+
+The `DATETIME`, `SMALLDATETIME` and `DATETIME2` types represent a timestamp without time zone information.
+Such columns are converted into an equivalent Kafka Connect value based on UTC. For example, the `DATETIME2` value "2018-06-20 15:13:16.945104" is represented by an `io.debezium.time.MicroTimestamp` with the value "1529507596945104".
+
+The timezone of the JVM running Kafka Connect and {prodname} does not affect this conversion.
+
+[[db2-decimal-types]]
+.Decimal types
+
+[cols="27%a,18%a,55%a",options="header"]
+|===
+|Db2 data type |Literal type (schema type) |Semantic type (schema name) and Notes
+
+|`NUMERIC[(P[,S])]`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal` +
+ +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point is shifted.
+The `connect.decimal.precision` schema parameter contains an integer that represents the precision of the given decimal value.
+
+|`DECIMAL[(P[,S])]`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal` +
+ +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point is shifted.
+The `connect.decimal.precision` schema parameter contains an integer that  represents the precision of the given decimal value.
+
+|`SMALLMONEY`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal` +
+ +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point iss shifted.
+The `connect.decimal.precision` schema parameter contains an integer that represents the precision of the given decimal value.
+
+|`MONEY`
+|`BYTES`
+|`org.apache.kafka.connect.data.Decimal` +
+ +
+The `scale` schema parameter contains an integer that represents how many digits the decimal point is shifted.
+The `connect.decimal.precision` schema parameter contains an integer that represents the precision of the given decimal value.
+|===
+

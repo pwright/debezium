@@ -1,0 +1,32 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Schemas excluded from capture
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
+
+[id="schemas-that-the-debezium-oracle-connector-excludes-when-capturing-change-events"]
+= Schemas that the {prodname} Oracle connector excludes when capturing change events
+
+When the {prodname} Oracle connector captures tables, it automatically excludes tables from the following schemas:
+
+* `appqossys`
+* `audsys`
+* `ctxsys`
+* `dvsys`
+* `dbsfwuser`
+* `dbsnmp`
+* `qsmadmin_internal`
+* `lbacsys`
+* `mdsys`
+* `ojvmsys`
+* `olapsys`
+* `orddata`
+* `ordsys`
+* `outln`
+* `sys`
+* `system`
+* `wmsys`
+* `xdb`
+
+To enable the connector to capture changes from a table, the table must use a schema that is not named in the preceding list.
+

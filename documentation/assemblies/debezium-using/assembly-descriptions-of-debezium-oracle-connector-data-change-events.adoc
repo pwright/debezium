@@ -1,16 +1,16 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Data change events
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-events
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Data change events
 
 [id="descriptions-of-debezium-oracle-connector-data-change-events"]
 = Descriptions of {prodname} Oracle connector data change events
 
 Every data change event that the Oracle connector emits has a key and a value.
 The structures of the key and value depend on the table from which the change events originate.
-For information about how {prodname} constructs topic names, see xref:{link-oracle-connector}#oracle-topic-names[Topic names]).
+For information about how {prodname} constructs topic names, see xref:oracle-topic-names[Topic names].
 
 [WARNING]
 ====
@@ -32,12 +32,10 @@ The schema describes the structure of the payload, while the payload contains th
 ====
 Changes that are performed by the `SYS` or `SYSTEM` user accounts are not captured by the connector.
 ====
-ifdef::product[]
 The following topics contain more details about data change events:
 
 * xref:about-keys-in-debezium-oracle-connector-change-events[]
 * xref:about-values-in-debezium-oracle-connector-change-events[]
-endif::product[]
 
 
 include::../../modules/debezium-using/con-about-keys-in-debezium-oracle-connector-change-events.adoc[leveloffset=+1]

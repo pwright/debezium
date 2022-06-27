@@ -1,0 +1,31 @@
+// Metadata created by nebel
+//
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+
+[id="db2-capture-agent-configuration-parameters"]
+= Db2 capture agent configuration parameters
+
+On Db2, the `IBMSNAP_CAPPARMS` table contains parameters that control the behavior of the capture agent.
+You can adjust the values for these parameters to balance the configuration of the capture process to reduce CPU load and still maintain acceptable levels of latency.
+
+[NOTE]
+====
+Specific guidance about how to configure Db2 capture agent parameters is beyond the scope of this documentation.
+====
+
+In the `IBMSNAP_CAPPARMS` table, the following parameters have the greatest effect on reducing CPU load:
+
+`COMMIT_INTERVAL`::
+* Specifies the number of seconds that the capture agent waits to commit data to the change data tables.
+* A higher value reduces the load on the database host and increases latency.
+* The default value is `30`.
+
+`SLEEP_INTERVAL`::
+* Specifies the number of seconds that the capture agent waits to start a new commit cycle after it reaches the end of the active transaction log.
+* A higher value reduces the load on the server, and increases latency.
+* The default value is `5`.
+
+.Additional resources
+* For more information about capture agent parameters, see the Db2 documentation.
+

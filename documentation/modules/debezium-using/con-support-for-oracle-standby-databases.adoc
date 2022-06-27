@@ -1,0 +1,9 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Standby databases
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
+
+[id="support-for-oracle-standby-databases"]
+= Support for Oracle standby databases
+The {prodname} Oracle connector cannot be used with Oracle physical or logical standby databases.

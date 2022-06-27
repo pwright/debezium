@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Transaction Metadata
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-transaction-metadata
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Transaction Metadata
 
 [id="debezium-oracle-connector-generated-events-that-represent-transaction-boundaries"]
 = {prodname} Oracle connector-generated events that represent transaction boundaries
@@ -60,5 +60,5 @@ Unless overridden via the xref:oracle-property-transaction-topic[`transaction.to
 the connector emits transaction events to the xref:oracle-property-database-server-name[`_<database.server.name>_`]`.transaction` topic.
 
 
-include::../../modules/debezium-using/con-debezium-oracle-connector-change-data-event-enrichment.adoc[leveloffset=+1]
+include::../../modules/debezium-using/con-how-the-debezium-oracle-connector-enriches-change-event-messages-with-transaction-metadata.adoc[leveloffset=+1]
 

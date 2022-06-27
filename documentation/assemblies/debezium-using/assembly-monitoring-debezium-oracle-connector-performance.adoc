@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Monitoring
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-monitoring
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Monitoring
 
 [id="monitoring-debezium-oracle-connector-performance"]
 = Monitoring {prodname} Oracle connector performance

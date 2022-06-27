@@ -1,8 +1,8 @@
 // Metadata created by nebel
 //
-// ConversionStatus: raw
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConvertedFromTitle: Preparing the database
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
 
 [id="preparing-oracle-databases-for-use-with-debezium"]
 = Preparing Oracle databases for use with {prodname}
@@ -25,13 +25,16 @@ archive log list
 exit;
 ----
 
-In addition, supplemental logging must be enabled for captured tables or the database in order for data changes to capture the _before_ state of changed database rows.
-The following illustrates how to configure this on a specific table, which is the ideal choice to minimize the amount of information captured in the Oracle redo logs.
+To enable {prodname} to capture the _before_ state of changed database rows, you must also enable supplemental logging for captured tables or for the entire database.
+The following example illustrates how to configure supplemental logging for all columns in a single `inventory.customers` table.
 
 [source,indent=0]
 ----
 ALTER TABLE inventory.customers ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
 ----
+
+Enabling supplemental logging for all table columns increases the volume of the Oracle redo logs.
+To prevent excessive growth in the size of the logs, apply the preceding configuration selectively.
 
 Minimal supplemental logging must be enabled at the database level and can be configured as follows.
 

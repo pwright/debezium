@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Behavior when things go wrong
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-when-things-go-wrong
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Behavior when things go wrong
 
 [id="how-debezium-oracle-connectors-handle-faults-and-problems"]
 = How {prodname} Oracle connectors handle faults and problems
@@ -65,23 +65,70 @@ The connector's `table.include.list` or `table.exclude.list` configuration optio
 [id="oracle-pga-aggregate-limit"]
 .ORA-04036: PGA memory used by the instance exceeds PGA_AGGREGATE_LIMIT
 
-Oracle may issue this error if you're connecting to a database that changes very infrequent.
+Oracle might report this error when {prodname} connects to a database in which changes occur infrequently.
 The {prodname} connector starts an Oracle LogMiner session and reuses this session until a log switch is detected.
-The reuse is both a performance and resource utilization optimization; however, a long-running mining session can cause high PGA memory usage.
+The reuse is both a performance and resource utilization optimization; however, a long-running mining session can cause high Program Global Area (PGA) memory usage.
 
-If your redo log switch frequency is low, you can avoid the ORA-04036 error by configuring Oracle to automatically switch logs on a defined frequency.
-A log switch causes the connector to restart the mining session, therefore avoiding high PGA memory usage.
-The following configuration forces Oracle to switch log files every 20 minutes if a log switch hasn't occurred within that window:
+If your redo log switches infrequently, you can avoid the ORA-04036 error by specifying how frequently Oracle switches logs.
+A log switch causes the connector to restart the mining session, thereby avoiding high PGA memory usage.
+The following configuration forces Oracle to switch log files every 20 minutes if a log switch does not occur during that interval:
 
 [source,sql]
 ----
-ALTER SYSTEM SET archive_log_target=1200 scope=both;
+ALTER SYSTEM SET archive_lag_target=1200 scope=both;
 ----
 
-This change will likely require SYSDBA permissions, so coordinate with your database administrator.
+Running the preceding query requires specific administrative privileges.
+Coordinate with your database administrator to implement the change.
+
+As alternative to adjusting the Oracle `ARCHIVE_LAG_TARGET` parameter, you can limit the duration of an Oracle LogMiner session by setting the connector configuration option xref:oracle-property-log-mining-session-max-ms[`log.mining.session.max.ms`].
+The `log.mining.session.max.ms` option causes the LogMiner session to restart regularly, whether or not the switch to a new database log occurs.
 
 [id="oracle-sys-system-change-not-emitted"]
 .LogMiner adapter does not capture changes made by SYS or SYSTEM
 
-Oracle uses the `SYS` and `SYSTEM` accounts for lots of internal changes and therefore the connector automatically filters changes made by these users when fetching changes from LogMiner.
-Never use the `SYS` or `SYSTEM` user accounts for changes to be emitted by the {prodname} Oracle connector.
+Oracle uses the `SYS` and `SYSTEM` accounts to carry out many internal changes.
+When the {prodname} Oracle connector fetches changes from LogMiner, it automatically filters changes that originate from these administrator accounts.
+To ensure that the connector emit event records when you change a table, never use the `SYS` or `SYSTEM` user accounts to modify the table.
+
+[id="oracle-stops-capturing-changes-aws"]
+.Connector stops capturing changes from Oracle on AWS
+
+Due to the https://aws.amazon.com/blogs/networking-and-content-delivery/best-practices-for-deploying-gateway-load-balancer[fixed idle timeout of 350 seconds on the AWS Gateway Load Balancer],
+JDBC calls that require more than 350 seconds to complete can hang indefinitely.
+
+In situations where calls to the Oracle LogMiner API take more than 350 seconds to complete, a timeout can be triggered, causing the AWS Gateway Load Balancer to hang.
+For example, such timeouts can occur when a LogMiner session that processes large amounts of data runs concurrently with Oracle's periodic checkpointing task.
+
+To prevent timeouts from occurring on the AWS Gateway Load Balancer, enable keep-alive packets from the Kafka Connect environment, by performing the following steps as root or a super-user:
+
+. From a terminal, run the following command:
++
+```shell
+sysctl -w net.ipv4.tcp_keepalive_time=60
+```
+. Edit `/etc/sysctl.conf` and set the value of the following variable as shown:
++
+```properties
+net.ipv4.tcp_keepalive_time=60
+```
+. Reconfigure the {prodname} for Oracle connector to use the `database.url` property rather than `database.hostname` and add the `(ENABLE=broken)` Oracle connect string descriptor as shown in the following example:
++
+```properties
+database.url=jdbc:oracle:thin:username/password!@(DESCRIPTION=(ENABLE=broken)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(Host=hostname)(Port=port)))(CONNECT_DATA=(SERVICE_NAME=serviceName)))
+```
+
+The preceding steps configure the TCP network stack to send keep-alive packets every 60 seconds.
+As a result, the AWS Gateway Load Balancer does not timeout when JDBC calls to the LogMiner API take more than 350 seconds to complete, enabling the connector to continue to read changes from the database's transaction logs.
+
+[id="oracle-oracle-11-exception-ora01882"]
+.Connection fails with error `ORA-01882: timezone region not found`
+
+When you start a connector that the Oracle JDBC driver (`ojdbc8.jar`) to access an Oracle 11g database, the connector might report the following error:
+
+```shell
+Caused by: java.sql.SQLException: ORA-00604: error occurred at recursive SQL level 1
+ORA-01882: timezone region not found
+```
+
+To prevent the preceding error from occurring, add the following setting to the connector configuration: `database.oracle.jdbc.timezoneAsRegion=false`.

@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Creating users for the connector
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: creating-users-for-the-connector
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Creating users for the connector
 
 [id="creating-an-oracle-user-for-the-debezium-oracle-connector"]
 = Creating an Oracle user for the {prodname} Oracle connector
@@ -145,3 +145,4 @@ The connector must be able to read information about the Oracle redo and archive
 Without these grants, the connector cannot operate.
 
 |===
+

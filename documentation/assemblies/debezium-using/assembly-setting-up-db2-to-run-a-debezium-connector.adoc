@@ -1,0 +1,30 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Setting up Db2
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: setting-up-db2
+
+[id="setting-up-db2-to-run-a-debezium-connector"]
+= Setting up Db2 to run a {prodname} connector
+
+For {prodname} to capture change events that are committed to Db2 tables, a Db2 database administrator with the necessary privileges must configure tables in the database for change data capture.
+After you begin to run {prodname} you can adjust the configuration of the capture agent to optimize performance.
+
+
+For details about setting up Db2 for use with the {prodname} connector, see the following sections:
+
+* xref:configuring-db2-tables-for-change-data-capture[]
+* xref:effect-of-db2-capture-agent-configuration-on-server-load-and-latency[]
+* xref:db2-capture-agent-configuration-parameters[]
+
+
+
+include::../../modules/debezium-using/proc-configuring-db2-tables-for-change-data-capture.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-effect-of-db2-capture-agent-configuration-on-server-load-and-latency.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-db2-capture-agent-configuration-parameters.adoc[leveloffset=+1]
+

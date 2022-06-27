@@ -1,0 +1,11 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Compatibility with Oracle installation types
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
+
+[id="compatibility-of-the-debezium-oracle-connector-with-oracle-installation-types"]
+= Compatibility of the {prodname} Oracle connector with Oracle installation types
+
+The {prodname} Oracle connector is compatible with Oracle installed as a standalone instance.
+

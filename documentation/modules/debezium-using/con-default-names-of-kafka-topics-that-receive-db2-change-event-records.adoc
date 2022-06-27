@@ -1,0 +1,36 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Topic names
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-topic-names
+
+[id="default-names-of-kafka-topics-that-receive-db2-change-event-records"]
+= Default names of Kafka topics that receive {prodname} Db2 change event records
+
+By default, the Db2 connector writes change events for all of the `INSERT`, `UPDATE`, and `DELETE` operations that occur in a table to a single Apache Kafka topic that is specific to that table.
+The connector uses the following convention to name change event topics:
+
+_databaseName_._schemaName_._tableName_
+
+The following list provides definitions for the components of the default name:
+
+_databaseName_:: The logical name of the connector as specified by the xref:db2-property-database-server-name[`database.server.name`] connector configuration property.
+
+_schemaName_:: The name of the schema in which the operation occurred.
+
+_tableName_:: The name of the table in which the operation occurred.
+
+For example, consider a Db2 installation with the `mydatabase` database,  which contains four tables: `PRODUCTS`, `PRODUCTS_ON_HAND`, `CUSTOMERS`, and `ORDERS` that are in the `MYSCHEMA` schema. The connector would emit events to these four Kafka topics:
+
+* `mydatabase.MYSCHEMA.PRODUCTS`
+* `mydatabase.MYSCHEMA.PRODUCTS_ON_HAND`
+* `mydatabase.MYSCHEMA.CUSTOMERS`
+* `mydatabase.MYSCHEMA.ORDERS`
+
+The connector applies similar naming conventions to label its internal database history topics, xref:about-the-debezium-db2-connector-schema-change-topic[schema change topics], and xref:db2-transaction-metadata[transaction metadata topics].
+
+If the default topic name do not meet your requirements, you can configure custom topic names.
+To configure custom topic names, you specify regular expressions in the logical topic routing SMT.
+For more information about using the logical topic routing SMT to customize topic naming, see xref:{link-topic-routing}#topic-routing[Topic routing].
+

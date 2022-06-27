@@ -1,0 +1,47 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Deployment
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-deploying-a-connector
+
+[id="deployment-of-debezium-db2-connectors"]
+= Deployment of {prodname} Db2 connectors
+
+
+You can use either of the following methods to deploy a {prodname} Db2 connector:
+
+* xref:openshift-streams-db2-connector-deployment[Use {StreamsName} to automatically create an image that includes the connector plug-in].
++
+This is the preferred method.
+* xref:deploying-debezium-db2-connectors[Build a custom Kafka Connect container image from a Dockerfile].
+
+[IMPORTANT]
+====
+Due to licensing requirements, the {prodname} Db2 connector archive does not include the Db2 JDBC driver that {prodname} requires to connect to a Db2 database.
+To enable the connector to access the database, you must add the driver to your connector environment.
+For information about how to obtain the driver, see xref:obtaining-the-db2-jdbc-driver[Obtaining the Db2 JDBC driver].
+====
+
+.Additional resources
+
+* xref:descriptions-of-debezium-db2-connector-configuration-properties[]
+
+
+include::../../modules/debezium-using/proc-obtaining-the-db2-jdbc-driver.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-openshift-streams-db2-connector-deployment.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/proc-using-streams-to-deploy-debezium-db2-connectors.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/proc-deploying-debezium-db2-connectors.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/proc-verifying-that-the-debezium-db2-connector-is-running.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-descriptions-of-debezium-db2-connector-configuration-properties.adoc[leveloffset=+1]
+

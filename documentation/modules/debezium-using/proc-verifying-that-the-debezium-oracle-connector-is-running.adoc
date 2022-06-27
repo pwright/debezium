@@ -1,7 +1,7 @@
 // Metadata created by nebel
 //
-// ConversionStatus: raw
 // ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
 
 [id="verifying-that-the-debezium-oracle-connector-is-running"]
 = Verifying that the {prodname} Oracle connector is running
@@ -166,5 +166,4 @@ In the preceding example, the `payload` value shows that the connector snapshot 
 The `"before"` state of the `product_id` record is `null`, indicating that no previous value exists for the record.
 The `"after"` state shows a `quantity` of `3` for the item with `product_id` `101`.
 
-endif::product[]
 

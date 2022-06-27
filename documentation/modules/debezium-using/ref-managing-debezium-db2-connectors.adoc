@@ -1,0 +1,41 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Management
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-management
+
+[id="managing-debezium-db2-connectors"]
+= Managing {prodname} Db2 connectors
+
+After you deploy a {prodname} Db2 connector, use the {prodname} management UDFs to control Db2 replication (ASN) with SQL commands. Some of the UDFs expect a return value in which case you use the  SQL `VALUE` statement to invoke them. For other UDFs, use the SQL `CALL` statement.
+
+.Descriptions of {prodname} management UDFs
+[cols="1,4",options="header"]
+|===
+|Task |Command and notes
+
+|[[debezium-db2-start-asn-agent]]<<debezium-db2-start-asn-agent,Start the ASN agent>>
+|`VALUES ASNCDC.ASNCDCSERVICES('start','asncdc');`
+
+|[[debezium-db2-stop-asn-agent]]<<debezium-db2-stop-asn-agent,Stop the ASN agent>>
+|`VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc');`
+
+|[[debezium-db2-check-asn-agent]]<<debezium-db2-check-asn-agent,Check the status of the ASN agent>>
+|`VALUES ASNCDC.ASNCDCSERVICES('status','asncdc');`
+
+|[[debezium-db2-put-capture-mode]]<<debezium-db2-put-capture-mode,Put a table into capture mode>>
+|`CALL ASNCDC.ADDTABLE('MYSCHEMA', 'MYTABLE');` +
+ +
+Replace `MYSCHEMA`  with the name of the schema that contains the table you want to put into capture mode. Likewise, replace `MYTABLE` with the name of the table to put into capture mode.
+
+|[[debezium-db2-remove-capture-mode]]<<debezium-db2-remove-capture-mode,Remove a table from capture mode>>
+|`CALL ASNCDC.REMOVETABLE('MYSCHEMA', 'MYTABLE');`
+
+|[[debezium-db2-reinitialize-asn-service]]<<debezium-db2-reinitialize-asn-service,Reinitialize the ASN service>>
+|`VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc');` +
+ +
+Do this after you put a table into capture mode or after you remove a table from capture mode.
+
+|===
+

@@ -1,10 +1,12 @@
 // Metadata created by nebel
 //
-// ConversionStatus: raw
+// ConvertedFromTitle: Redo log sizing
 // ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
+// ConvertedFromID: oracle-redo-log-sizing
 
-[id="oracle-redo-log-sizing"]
-= Redo log sizing
+[id="resizing-oracle-redo-logs-to-accommodate-the-data-dictionary"]
+= Resizing-oracle-redo-logs-to-accommodate-the-data-dictionary
 
 Depending on the database configuration, the size and number of redo logs might not be sufficient to achieve acceptable performance.
 Before you set up the {prodname} Oracle connector, ensure that the capacity of the redo logs is sufficient to support the database.

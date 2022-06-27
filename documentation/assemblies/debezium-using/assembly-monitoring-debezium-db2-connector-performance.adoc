@@ -1,0 +1,27 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Monitoring
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-monitoring
+
+[id="monitoring-debezium-db2-connector-performance"]
+= Monitoring {prodname} Db2 connector performance
+
+The {prodname} Db2 connector provides three types of metrics that are in addition to the built-in support for JMX metrics that Apache ZooKeeper, Apache Kafka, and Kafka Connect provide.
+
+* xref:{link-db2-connector}#db2-snapshot-metrics[Snapshot metrics] provide information about connector operation while performing a snapshot.
+* xref:{link-db2-connector}#db2-streaming-metrics[Streaming metrics] provide information about connector operation when the connector is capturing changes and streaming change event records.
+* xref:{link-db2-connector}#db2-schema-history-metrics[Schema history metrics] provide information about the status of the connector's schema history.
+
+{link-prefix}:{link-debezium-monitoring}#monitoring-debezium[{prodname} monitoring documentation] provides details for how to expose these metrics by using JMX.
+
+
+include::../../modules/debezium-using/ref-monitoring-debezium-during-snapshots-of-db2-databases.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-monitoring-debezium-db2-connector-record-streaming.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/ref-monitoring-debezium-db2-connector-schema-history.adoc[leveloffset=+1]
+

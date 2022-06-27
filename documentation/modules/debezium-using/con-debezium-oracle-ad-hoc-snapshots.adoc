@@ -1,8 +1,8 @@
 // Metadata created by nebel
 //
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-ad-hoc-snapshots
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 
 [id="debezium-oracle-ad-hoc-snapshots"]
 = Ad hoc snapshots
@@ -10,15 +10,11 @@ This content is for testing only
 
 The context is `{context}`.
 
-ifeval::["{context}" == "oracle"]
           - type: jar          // <8>
             url:  https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/{ojdbc8-version}/ojdbc8-{ojdbc8-version}.jar
-endif::[]
 
-ifeval::["{context}" == "db2"]
           - type: jar          // <8>
             url: some other url
-endif::[]
 
 hello from oracle test.adoc
 By default, a connector runs an initial snapshot operation only after it starts for the first time.
@@ -60,7 +56,7 @@ Currently, you can request only `incremental` snapshots.
 
 |`data-collections`
 |_N/A_
-| An array that contains the fully-qualified names of the {data-collection} to be snapshotted. +
+| An array that contains regular expressions matching the fully-qualified names of the {data-collection} to be snapshotted. +
 The format of the names is the same as for the `signal.data.collection` configuration option.
 
 |===

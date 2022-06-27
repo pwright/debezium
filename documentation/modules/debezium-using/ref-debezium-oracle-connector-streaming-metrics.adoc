@@ -1,15 +1,14 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Streaming Metrics
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-streaming-metrics
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Streaming Metrics
 
 [id="debezium-oracle-connector-streaming-metrics"]
 = {prodname} Oracle connector streaming metrics
 
 [[oracle-monitoring-streaming]]
-
 The *MBean* is `debezium.{mbean-name}:type=connector-metrics,context=streaming,server=_<{context}.server.name>_`.
 
 The following table lists the streaming metrics that are available.
@@ -45,13 +44,6 @@ The following table lists the streaming metrics that are available.
 |[[connectors-strm-metric-numberofeventsfiltered_{context}]]<<connectors-strm-metric-numberofeventsfiltered_{context}, `NumberOfEventsFiltered`>>
 |`long`
 |The number of events that have been filtered by include/exclude list filtering rules configured on the connector.
-
-ifdef::product[]
-|[[connectors-strm-metric-monitoredtables_{context}]]<<connectors-strm-metric-monitoredtables_{context}, `MonitoredTables`>> +
-_Deprecated and scheduled for removal in a future release; use the 'CapturedTables' metric instead_
-|`string[]`
-|The list of tables that are monitored by the connector.
-endif::product[]
 
 |[[connectors-strm-metric-capturedtables_{context}]]<<connectors-strm-metric-capturedtables_{context}, `CapturedTables`>>
 |`string[]`
@@ -111,7 +103,7 @@ The {prodname} Oracle connector also provides the following additional streaming
 |`string`
 |The oldest system change number in the transaction buffer.
 
-|[[oracle-streaming-metrics-committed-scn]]<<oracle-streaming-metrics-committed-scn, `+ComittedScn+`>>
+|[[oracle-streaming-metrics-committed-scn]]<<oracle-streaming-metrics-committed-scn, `+CommittedScn+`>>
 |`string`
 |The last committed system change number from the transaction buffer.
 
@@ -239,7 +231,6 @@ See <<oracle-property-log-mining-transaction-retention-hours, `log.mining.transa
 |[[oracle-streaming-metrics-number-of-committed-transactions]]<<oracle-streaming-metrics-number-of-committed-transactions, `+NumberOfCommittedTransactions+`>>
 |`long`
 |The number of committed transactions in the transaction buffer.
-
 |[[oracle-streaming-metrics-number-of-rolledback-transactions]]<<oracle-streaming-metrics-number-of-rolledback-transactions, `+NumberOfRolledBackTransactions+`>>
 |`long`
 |The number of rolled back transactions in the transaction buffer.
@@ -266,12 +257,12 @@ See <<oracle-property-log-mining-transaction-retention-hours, `log.mining.transa
 
 |[[oracle-streaming-metrics-abandoned-transaction-ids]]<<oracle-streaming-metrics-abandoned-transaction-ids, `+AbandonedTransactionIds+`>>
 |`string[]`
-|An array of abandoned transaction identifiers removed from the transaction buffer due to their age.
+|An array of the most recent abandoned transaction identifiers removed from the transaction buffer due to their age.
 See <<oracle-property-log-mining-transaction-retention-hours, `log.mining.transaction.retention.hours`>> for details.
 
 |[[oracle-streaming-metrics-rolled-back-transaction-ids]]<<oracle-streaming-metrics-rolled-back-transaction-ids, `+RolledBackTransactionIds+`>>
 |`string[]`
-|An array of transaction identifiers that have been mined and rolled back in the transaction buffer.
+|An array of the most recent transaction identifiers that have been mined and rolled back in the transaction buffer.
 
 |[[oracle-streaming-metrics-last-commit-duration-in-milliseconds]]<<oracle-streaming-metrics-last-commit-duration-in-milliseconds, `+LastCommitDurationInMilliseconds+`>>
 |`long`
@@ -291,9 +282,9 @@ See <<oracle-property-log-mining-transaction-retention-hours, `log.mining.transa
 
 |[[oracle-streaming-metrics-scn-freeze-count]]<<oracle-streaming-metrics-scn-freeze-count, `+ScnFreezeCount+`>>
 |`int`
-|The number of times the system change number has been checked for advancement and remains unchanged.
-This is an indicator that long-running transaction(s) are ongoing and preventing the connector from flushing the latest processed system change number to the connector's offsets.
-Under optimal operations, this should always be or remain close to `0`.
+|The number of times that the system change number was checked for advancement and remains unchanged.
+A high value can indicate that a long-running transactions is ongoing and is preventing the connector from flushing the most recently processed system change number to the connector's offsets.
+When conditions are optimal, the value should be close to or equal to `0`.
 
 |[[oracle-streaming-metrics-unparsable-ddl-count]]<<oracle-streaming-metrics-unparsable-ddl-count, `+UnparsableDdlCount+`>>
 |`int`

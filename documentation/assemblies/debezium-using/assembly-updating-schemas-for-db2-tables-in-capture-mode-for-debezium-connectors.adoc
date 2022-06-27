@@ -1,0 +1,32 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Schema evolution
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-schema-evolution
+
+[id="updating-schemas-for-db2-tables-in-capture-mode-for-debezium-connectors"]
+= Updating schemas for Db2 tables in capture mode for {prodname} connectors
+
+While a {prodname} Db2 connector can capture schema changes, to update a schema, you must collaborate with a database administrator to ensure that the connector continues to produce change events. This is required by the way that Db2 implements replication.
+
+For each table in capture mode, Db2's replication feature creates a change-data table that contains all changes to that source table. However, change-data table schemas are static. If you update the schema for a table in capture mode then you must also update the schema of its corresponding change-data table. A {prodname} Db2 connector cannot do this. A database administrator with elevated privileges must update schemas for tables that are in capture mode.
+
+[WARNING]
+====
+It is vital to execute a schema update procedure completely before there is a new schema update on the same table. Consequently, the recommendation is to execute all DDLs in a single batch so the schema update procedure is done only once.
+====
+
+There are generally two procedures for updating table schemas:
+
+* xref:{link-db2-connector}#db2-offline-schema-update[Offline - executed while {prodname} is stopped]
+* xref:{link-db2-connector}#db2-online-schema-update[Online - executed while {prodname} is running]
+
+Each approach has advantages and disadvantages.
+
+
+include::../../modules/debezium-using/proc-performing-offline-schema-updates-for-debezium-db2-connectors.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/proc-performing-online-schema-updates-for-debezium-db2-connectors.adoc[leveloffset=+1]
+

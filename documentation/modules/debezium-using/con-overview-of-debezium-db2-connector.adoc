@@ -1,0 +1,33 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Overview
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-overview
+
+[id="overview-of-debezium-db2-connector"]
+= Overview of {prodname} Db2 connector
+
+The {prodname} Db2 connector is based on the link:https://www.ibm.com/support/pages/q-replication-and-sql-replication-product-documentation-pdf-format-version-101-linux-unix-and-windows[ASN Capture/Apply agents]
+that enable SQL Replication in Db2. A capture agent:
+
+* Generates change-data tables for tables that are in capture mode.
+* Monitors tables in capture mode and stores change events for updates to those tables in their corresponding change-data tables.
+
+The {prodname} connector uses a SQL interface to query change-data tables for  change events.
+
+The database administrator must put the tables for which you want to capture changes into capture mode. For convenience and for automating testing, there are xref:{link-db2-connector}#managing-debezium-db2-connectors[{prodname} user-defined functions (UDFs)] in C that you can compile and then use to do the following management tasks:
+
+* Start, stop, and reinitialize the ASN agent
+* Put tables into capture mode
+* Create the replication (ASN) schemas and change-data tables
+* Remove tables from capture mode
+
+Alternatively, you can use Db2 control commands to accomplish these tasks.
+
+After the tables of interest are in capture mode, the connector reads their corresponding change-data tables to obtain change events for table updates. The connector emits a change event for each row-level insert, update, and delete operation to a Kafka topic that has the same name as the changed table. This is default behavior that you can modify. Client applications read the Kafka topics that correspond to the database tables of interest and can react to each row-level change event.
+
+Typically, the database administrator puts a table into capture mode in the middle of the life of a table. This means that the connector does not have the complete history of all changes that have been made to the table. Therefore, when the Db2 connector first connects to a particular Db2 database, it starts by performing a _consistent snapshot_ of each table that is in capture mode. After the connector completes the snapshot, the connector streams change events from the point at which the snapshot was made. In this way, the connector starts with a consistent view of the tables that are in capture mode, and does not drop any changes that were made while it was performing the snapshot.
+
+{prodname} connectors are tolerant of failures. As the connector reads and produces change events, it records the log sequence number (LSN) of the change-data table entry. The LSN is the position of the change event in the database log. If the connector stops for any reason, including communication failures, network problems, or crashes, upon restarting it continues reading the change-data tables where it left off. This includes snapshots. That is, if the snapshot was not complete when the connector stopped, upon restart the connector begins a new snapshot.
+

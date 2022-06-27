@@ -1,0 +1,17 @@
+// Metadata created by nebel
+//
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+
+[id="obtaining-the-db2-jdbc-driver"]
+= Obtaining the Db2 JDBC driver
+
+Due to licensing requirements, the Db2 JDBC driver file that {prodname} requires to connect to an Db2 database is not included in the {prodname} Db2 connector archive.
+The driver is available for download from Maven Central.
+Depending on the deployment method that you use, you retrieve the driver by adding a command to the Kafka Connect custom resource or to the Dockerfile that you use to build the connector image.
+
+* If you use {StreamsName} to add the connector to your Kafka Connect image, add the Maven Central location for the driver to `builds.plugins.artifact.url` in the `KafkaConnect` custom resource as shown in xref:using-streams-to-deploy-debezium-db2-connectors[].
+* If you use a Dockerfile to build a container image for the connector, insert a `curl` command in the Dockerfile to specify the URL for downloading the required driver file from Maven Central.
+For more information, see xref:deploying-debezium-db2-connectors[].
+
+

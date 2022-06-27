@@ -1,7 +1,7 @@
 // Metadata created by nebel
 //
-// ConversionStatus: raw
 // ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
 
 [id="openshift-streams-oracle-connector-deployment"]
 = {prodname} Oracle connector deployment using {StreamsName}

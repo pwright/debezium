@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Connector properties
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-connector-properties
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Connector properties
 
 [id="descriptions-of-debezium-oracle-connector-configuration-properties"]
 = Descriptions of {prodname} Oracle connector configuration properties
@@ -35,9 +35,31 @@ The following configuration properties are _required_ unless a default value is 
 |No default
 |The name of the Java class for the connector. Always use a value of `io.debezium.connector.oracle.OracleConnector` for the Oracle connector.
 
+|[[oracle-property-converters]]<<oracle-property-converters, `converters`>>
+|No default
+|Enumerates a comma-separated list of the symbolic names of the {link-prefix}:{link-custom-converters}#custom-converters[custom converter] instances that the connector can use. +
+For example, `boolean`. +
+This property is required to enable the connector to use a custom converter.
+
+For each converter that you configure for a connector, you must also add a `.type` property, which specifies the fully-qualifed name of the class that implements the converter interface.
+The `.type` property uses the following format: +
+
+`_<converterSymbolicName>_.type` +
+
+For example, +
+
+ boolean.type: io.debezium.connector.oracle.converters.NumberOneToBooleanConverter
+
+If you want to further control the behavior of a configured converter, you can add one or more configuration parameters to pass values to the converter.
+To associate any additional configuration parameters with a converter, prefix the parameter names with the symbolic name of the converter. +
+ +
+For example, to define a `selector` parameter that specifies the subset of columns that the `boolean` converter processes, add the following property: +
+
+ boolean.selector: .*MYTABLE.FLAG,.*.IS_ARCHIVED
+
 |[[oracle-property-tasks-max]]<<oracle-property-tasks-max, `+tasks.max+`>>
 |`1`
-|The maximum number of tasks that should be created for this connector. The Oracle connector always uses a single task and therefore does not use this value, so the default is always acceptable.
+|The maximum number of tasks to create for this connector. The Oracle connector always uses a single task and therefore does not use this value, so the default is always acceptable.
 
 |[[oracle-property-database-hostname]]<<oracle-property-database-hostname, `+database.hostname+`>>
 |No default
@@ -62,12 +84,7 @@ The following configuration properties are _required_ unless a default value is 
 |[[oracle-property-database-url]]<<oracle-property-database-url, `+database.url+`>>
 |No default
 |Specifies the raw database JDBC URL. Use this property to provide flexibility in defining that database connection.
-ifdef::community[]
-Valid values include raw TNS names and RAC connection strings.
-endif::community[]
-ifdef::product[]
 Valid values include raw TNS names connection strings.
-endif::product[]
 
 |[[oracle-property-database-pdb-name]]<<oracle-property-database-pdb-name, `+database.pdb.name+`>>
 |No default
@@ -91,10 +108,7 @@ The connector is also unable to recover its database history topic.
 |`logminer`
 |The adapter implementation that the connector uses when it streams database changes.
 You can set the following values:
-
 `logminer`(default):: The connector uses the native Oracle LogMiner API.
-`xstream`:: The connector uses the Oracle XStreams API.
-
 |[[oracle-property-snapshot-mode]]<<oracle-property-snapshot-mode, `+snapshot.mode+`>>
 |_initial_
 |Specifies the mode that the connector uses to take snapshots of a captured table.
@@ -117,7 +131,7 @@ Note this mode is only safe to be used when it is guaranteed that no schema chan
 
 After the snapshot is complete, the connector continues to read change events from the database's redo logs except when `snapshot.mode` is configured as `initial_only`.
 
-For more information, see the xref:#oracle-connector-snapshot-mode-options[table of `snapshot.mode` options].
+For more information, see the xref:oracle-connector-snapshot-mode-options[table of `snapshot.mode` options].
 
 |[[oracle-property-snapshot-locking-mode]]<<oracle-property-snapshot-locking-mode, `+snapshot.locking.mode+`>>
 |_shared_
@@ -185,13 +199,13 @@ In environments that use the LogMiner implementation, you must use POSIX regular
 
 |[[oracle-property-table-include-list]]<<oracle-property-table-include-list, `+table.include.list+`>>
 |No default
-|An optional comma-separated list of regular expressions that match fully-qualified table identifiers for tables to be monitored.
+|An optional comma-separated list of regular expressions that match fully-qualified table identifiers for tables to be captured.
 Tables that are not included in the include list are excluded from monitoring.
 Each table identifier uses the following format: +
  +
 `__<schema_name>.<table_name>__` +
  +
-By default, the connector monitors every non-system table in each monitored database.
+By default, the connector monitors every non-system table in each captured database.
 Do not use this property in combination with `table.exclude.list`.
 If you use the LogMiner implementation, use only POSIX regular expressions with this property.
 
@@ -255,6 +269,7 @@ Hashing strategy version 2 should be used to ensure fidelity if the value is bei
 |bytes
 |Specifies how binary (`blob`) columns should be represented in change events, including: `bytes` represents binary data as byte array (default), `base64` represents binary data as base64-encoded String, `hex` represents binary data as hex-encoded (base16) String
 
+
 |[[oracle-property-schema-name-adjustment-mode]]<<oracle-property-schema-name-adjustment-mode,`+schema.name.adjustment.mode+`>>
 |avro
 |Specifies how schema names should be adjusted for compatibility with the message converter used by the connector. Possible settings:  +
@@ -272,7 +287,7 @@ You can set one of the following options:
   Using `double` values is easier, but can result in a loss of precision.
 `string`:: Encodes values as formatted strings.
   Using the `string` option is easier to consume, but results in a loss of semantic information about the real type.
-  For more information, see <<oracle-decimal-types>>.
+  For more information, see <<oracle-numeric-types>>.
 
 |[[oracle-property-interval-handling-mode]]<<oracle-property-interval-handling-mode, `+interval.handling.mode+`>>
 |`numeric`
@@ -390,11 +405,24 @@ See the xref:{link-oracle-connector}#oracle-data-type-mappings[list of Oracle-sp
 |`0`
 |Specifies, in milliseconds, how frequently the connector sends messages to a heartbeat topic. +
 Use this property to determine whether the connector continues to receive change events from the source database. +
-It can also be useful to set the property in situations where the connector no change events occur in captured tables for an extended period. +
-In such a a case, although the connector continues to read the redo log, it emits no change event messages, so that the offset in the Kafka topic remains unchanged.
+It can also be useful to set the property in situations where no change events occur in captured tables for an extended period. +
+In such a case, although the connector continues to read the redo log, it emits no change event messages, so that the offset in the Kafka topic remains unchanged.
 Because the connector does not flush the latest system change number (SCN) that it read from the database, the database might retain the redo log files for longer than necessary.
 If the connector restarts, the extended retention period could result in the connector redundantly sending some change events. +
 The default value of `0` prevents the connector from sending any heartbeat messages.
+
+|[[oracle-property-heartbeat-action-query]]<<oracle-property-heartbeat-action-query, `+heartbeat.action.query+`>>
+|No default
+|Specifies a query that the connector executes on the source database when the connector sends a heartbeat message. +
+ +
+For example: +
+ +
+`INSERT INTO test_heartbeat_table (text) VALUES ('test_heartbeat')` +
+ +
+The connector runs the query after it emits a xref:oracle-property-heartbeat-interval-ms[heartbeat message].
+
+Set this property and create a heartbeat table to receive the heartbeat messages to resolve situations in which xref:low-change-frequency-offset-management[{prodname} fails to synchronize offsets on low-traffic databases that are on the same host as a high-traffic database].
+After the connector inserts records into the configured table, it is able to receive changes from the low-traffic database and acknowledge SCN changes in the database, so that offsets can be synchronized with the broker.
 
 |[[oracle-property-heartbeat-topics-prefix]]<<oracle-property-heartbeat-topics-prefix, `+heartbeat.topics.prefix+`>>
 |`__debezium-heartbeat`
@@ -410,6 +438,11 @@ Use this property to prevent snapshot interruptions when you start multiple conn
 |`2000`
 |Specifies the maximum number of rows that should be read in one go from each table while taking a snapshot.
 The connector reads table contents in multiple batches of the specified size.
+
+|[[oracle-property-query-fetch-size]]<<oracle-property-query-fetch-size, `+query.fetch.size+`>>
+|No default
+|Specifies the number of rows that will be fetched for each database round-trip of a given query.
+Defaults to the JDBC driver's default fetch size.
 
 |[[oracle-property-sanitize-field-names]]<<oracle-property-sanitize-field-names, `+sanitize.field.names+`>>
 |`true` when the connector configuration explicitly specifies the `key.converter` or `value.converter` parameters to use Avro, otherwise defaults to `false`.
@@ -445,44 +478,14 @@ If the captured table(s) schema changes infrequently or never, this is the ideal
 Choose this option if you don't expect the connector to process a high number of long-running or large transactions.
 When this option is active, the buffer state is not persisted across restarts.
 Following a restart, recreate the buffer from the SCN value of the current offset. +
-ifdef::community[]
+
+|[[oracle-property-log-mining-session-max-ms]]<<oracle-property-log-mining-session-max-ms, `+log.mining.session.max.xs+`>>
+|`0`
+|The maximum number of milliseconds that a LogMiner session can be active before a new session is used. +
  +
-`infinispan` - This option uses an embedded Infinispan cache to buffer transaction data and persist it to disk.
-Choose this option if you expect the connector to process long-running or large transactions.
-When this option is active, the buffer state is persisted across restarts.
-After a restart, there is no need to recreate the buffer.
-Since the buffer state is persisted across restarts, the buffer does not need to be recreated at restart.
-The infinispan option requires that you specify a cache file directory.
-Use the `log.mining.buffer.location` property to define the location for storing cache files.
-
-|[[oracle-property-log-mining-buffer-infinispan-cache-transactions]]<<oracle-property-log-mining-buffer-infinispan-cache-transactions, `+log.mining.buffer.infinispan.cache.transactions+`>>
-|No default
-|The XML configuration for the Infinispan transaction cache.
-For more information, see xref:oracle-event-buffering-infinispan[Infinispan event buffering].
-
-|[[oracle-property-log-mining-buffer-infinispan-cache-events]]<<oracle-property-log-mining-buffer-infinispan-cache-events, `+log.mining.buffer.infinispan.cache.events+`>>
-|No default
-|The XML configuration for the Infinispan events cache.
-For more information, see xref:oracle-event-buffering-infinispan[Infinispan event buffering].
-
-|[[oracle-property-log-mining-buffer-infinispan-cache-processed-transactions]]<<oracle-property-log-mining-buffer-infinispan-cache-processed-transactions, `+log.mining.buffer.infinispan.cache.processed_transactions+`>>
-|No default
-|The XML configuration for the Infinispan processed transactions cache.
-For more information, see xref:oracle-event-buffering-infinispan[Infinispan event buffering].
-
-|[[oracle-property-log-mining-buffer-infinispan-cache-schema-changes]]<<oracle-property-log-mining-buffer-infinispan-cache-schema-changes, `+log.mining.buffer.infinispan.cache.schema_changes+`>>
-|No default
-|The XML configuration for the Infinispan schema changes cache.
-
-|[[oracle-property-log-mining-buffer-drop-on-stop]]<<oracle-property-log-mining-buffer-drop-on-stop, `+log.mining.buffer.drop.on.stop+`>>
-|`false`
-|Specifies whether the buffer state is deleted after the connector stops in a graceful, expected way. +
- +
-This setting only impacts buffer implementations that persist state across restarts, such as `infinispan`. +
-The default behavior is that the buffer state is always retained between restarts. +
- +
-Set to `true` only in testing or development environments.
-endif::community[]
+For low volume systems, a LogMiner session may consume too much PGA memory when the same session is used for a long period of time.
+The default behavior is to only use a new LogMiner session when a log switch is detected.
+By setting this value to something greater than `0`, this specifies the maximum number of milliseconds a LogMiner session can be active before it gets stopped and started to deallocate and reallocate PGA memory.
 
 |[[oracle-property-log-mining-batch-size-min]]<<oracle-property-log-mining-batch-size-min, `+log.mining.batch.size.min+`>>
 |`1000`
@@ -511,10 +514,6 @@ endif::community[]
 |[[oracle-property-log-mining-sleep-time-increment-ms]]<<oracle-property-log-mining-sleep-time-increment-ms, `+log.mining.sleep.time.increment.ms+`>>
 |`200`
 |The maximum amount of time up or down that the connector uses to tune the optimal sleep time when reading data from logminer. Value is in milliseconds.
-
-|[[oracle-property-log-mining-view-fetch-size]]<<oracle-property-log-mining-view-fetch-size, `+log.mining.view.fetch.size+`>>
-|`10000`
-|The number of content records that the connector fetches from the LogMiner content view.
 
 |[[oracle-property-log-mining-archive-log-hours]]<<oracle-property-log-mining-archive-log-hours, `+log.mining.archive.log.hours+`>>
 |`0`
@@ -546,10 +545,6 @@ The LogMiner adapter maintains an in-memory buffer of all running transactions.
 Because all of the DML operations that are part of a transaction are buffered until a commit or rollback is detected,
 long-running transactions should be avoided in order to not overflow that buffer.
 Any transaction that exceeds this configured value is discarded entirely, and the connector does not emit any messages for the operations that were part of the transaction.
-ifdef::community[]
-While this option allows the behavior to be configured on a case-by-case basis,
-we have plans to enhance this behavior in a future release by means of adding a scalable transaction buffer, (see xref:{jira-url}/browse/DBZ-3123[DBZ-3123]).
-endif::community[]
 |[[oracle-property-log-mining-archive-destination-name]]<<oracle-property-log-mining-archive-destination-name, `+log.mining.archive.destination.name+`>>
 |No default
 |Specifies the configured Oracle archive destination to use when mining archive logs with LogMiner. +
@@ -565,7 +560,7 @@ It can be useful to set this property if you want the capturing process to alway
 |[[oracle-property-log-mining-scn-gap-detection-gap-size-min]]<<oracle-property-log-mining-scn-gap-detection-gap-size-min, `+log.mining.scn.gap.detection.gap.size.min+`>>
 |`1000000`
 |Specifies a value that the connector compares to the difference between the current and previous SCN values to determine whether an SCN gap exists.
-If the difference between the SCN values  is greater than the specified value, and the time difference is smaller than xref:oracle-property-log-mining-scn-gap-detection-time-interval-max-ms[`log.mining.scn.gap.detection.time.interval.max.ms`] then an SCN gap is detected, and the connector uses a mining window larger than the configured maximum batch.
+If the difference between the SCN values is greater than the specified value, and the time difference is smaller than xref:oracle-property-log-mining-scn-gap-detection-time-interval-max-ms[`log.mining.scn.gap.detection.time.interval.max.ms`] then an SCN gap is detected, and the connector uses a mining window larger than the configured maximum batch.
 
 |[[oracle-property-log-mining-scn-gap-detection-time-interval-max-ms]]<<oracle-property-log-mining-scn-gap-detection-time-interval-max-ms, `+log.mining.scn.gap.detection.time.interval.max.ms+`>>
 |`20000`
@@ -586,34 +581,6 @@ NOTE: Use of large object data types is a Technology Preview feature.
 |`__debezium_unavailable_value`
 |Specifies the constant that the connector provides to indicate that the original value is unchanged and not provided by the database.
 
-ifdef::community[]
-|[[oracle-property-rac-nodes]]<<oracle-property-rac-nodes, `+rac.nodes+`>>
-|No default
-|A comma-separated list of Oracle Real Application Clusters (RAC) node host names or addresses.
-This field is required to enable Oracle RAC support.
-Specify the list of RAC nodes by using one of the following methods:
-
-* Specify a value for xref:oracle-property-database-port[`database.port`], and use the specified port value for each address in the `rac.nodes` list.
-For example:
-+
-[source,properties]
-----
-database.port=1521
-rac.nodes=192.168.1.100,192.168.1.101
-----
-
-* Specify a value for xref:oracle-property-database-port[`database.port`], and override the default port for one or more entries in the list.
-The list can include entries that use the default `database.port` value, and entries that define their own unique port values.
-For example:
-+
-[source,properties]
-----
-database.port=1521
-rac.nodes=192.168.1.100,192.168.1.101:1522
-----
-
-If you supply a raw JDBC URL for the database by using the xref:oracle-property-database-url[`database.url`] property, instead of defining a value for `database.port`, each RAC node entry must explicitly specify a port value.
-endif::community[]
 
 |[[oracle-property-skipped-operations]]<<oracle-property-skipped-operations, `+skipped.operations+`>>
 |No default
@@ -677,16 +644,6 @@ The following table describes the `database.history` properties for configuring 
 |A Boolean value that specifies whether the connector should ignore malformed or unknown database statements or stop processing so a human can fix the issue.
 The safe default is `false`.
 Skipping should be used only with care as it can lead to data loss or mangling when the binlog is being processed.
-
-|[[{context}-property-database-history-store-only-monitored-tables-ddl]]<<{context}-property-database-history-store-only-monitored-tables-ddl, `+database.history.store.only.monitored.tables.ddl+`>> +
-
-_Deprecated and scheduled for removal in a future release; use xref:{context}-property-database-history-store-only-captured-tables-ddl[`database.history.store.only.captured.tables.ddl`] instead._
-|`false`
-|A Boolean value that specifies whether the connector should record all DDL statements +
-
-`true` records only those DDL statements that are relevant to tables whose changes are being captured by {prodname}. Set to `true` with care because missing data might become necessary if you change which tables have their changes captured. +
-
-The safe default is `false`.
 
 |[[{context}-property-database-history-store-only-captured-tables-ddl]]<<{context}-property-database-history-store-only-captured-tables-ddl, `+database.history.store.only.captured.tables.ddl+`>>
 |`false`

@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Snapshot Metrics
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-snapshot-metrics
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Snapshot Metrics
 
 [id="debezium-oracle-connector-snapshot-metrics"]
 = {prodname} Oracle connector snapshot metrics
@@ -35,13 +35,6 @@ The following table lists the shapshot metrics that are available.
 |[[connectors-snaps-metric-numberofeventsfiltered_{context}]]<<connectors-snaps-metric-numberofeventsfiltered_{context}, `NumberOfEventsFiltered`>>
 |`long`
 | The number of events that have been filtered by include/exclude list filtering rules configured on the connector.
-
-ifdef::product[]
-|[[connectors-snaps-metric-monitoredtables_{context}]]<<connectors-snaps-metric-monitoredtables_{context}, `MonitoredTables`>> +
-_Deprecated and scheduled for removal in a future release; use the `CapturedTables` metric instead._
-|`string[]`
-|The list of tables that are monitored by the connector.
-endif::product[]
 
 |[[connectors-snaps-metric-capturedtables_{context}]]<<connectors-snaps-metric-capturedtables_{context}, `CapturedTables`>>
 |`string[]`
@@ -123,10 +116,8 @@ The connector also provides the following additional snapshot metrics when an in
 
 |===
 
-ifdef::product[]
 [IMPORTANT]
 ====
 Incremental snapshots is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[https://access.redhat.com/support/offerings/techpreview].
 ====
-endif::product[]
 

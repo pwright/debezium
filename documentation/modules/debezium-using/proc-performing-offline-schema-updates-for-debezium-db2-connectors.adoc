@@ -1,0 +1,31 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Offline schema update
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-offline-schema-update
+
+[id="performing-offline-schema-updates-for-debezium-db2-connectors"]
+= Performing offline schema updates for {prodname} Db2 connectors
+
+You stop the {prodname} Db2 connector before you perform an offline schema update. While this is the safer schema update procedure, it might not be feasible for applications with high-availability requirements.
+
+.Prerequisites
+
+* One or more tables that are in capture mode require schema updates.
+
+.Procedure
+
+. Suspend the application that updates the database.
+. Wait for the {prodname} connector to stream all unstreamed change event records.
+. Stop the {prodname} connector.
+. Apply all changes to the source table schema.
+. In the ASN register table, mark the tables with updated schemas as `INACTIVE`.
+. xref:{link-db2-connector}#debezium-db2-reinitialize-asn-service[Reinitialize the ASN capture service].
+. Remove the source table with the old schema from capture mode by xref:{link-db2-connector}#debezium-db2-remove-capture-mode[running the {prodname} UDF for removing tables from capture mode].
+. Add the source table with the new schema to capture mode by xref:{link-db2-connector}#debezium-db2-put-capture-mode[running the {prodname} UDF for adding tables to capture mode].
+. In the ASN register table, mark the updated source tables as `ACTIVE`.
+. xref:{link-db2-connector}#debezium-db2-reinitialize-asn-service[Reinitialize the ASN capture service.]
+. Resume the application that updates the database.
+. Restart the {prodname} connector.
+

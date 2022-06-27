@@ -1,0 +1,92 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Change event keys
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-change-event-keys
+
+[id="about-keys-in-debezium-db2-change-events"]
+= About keys in {prodname} db2 change events
+
+A change event's key contains the schema for the changed table's key and the changed row's actual key. Both the schema and its corresponding payload contain a field for each column in the changed table's `PRIMARY KEY` (or unique constraint) at the time the connector created the event.
+
+Consider the following `customers` table, which is followed by an example of a change event key for this table.
+
+.Example table
+[source,sql,indent=0]
+----
+CREATE TABLE customers (
+ ID INTEGER IDENTITY(1001,1) NOT NULL PRIMARY KEY,
+ FIRST_NAME VARCHAR(255) NOT NULL,
+ LAST_NAME VARCHAR(255) NOT NULL,
+ EMAIL VARCHAR(255) NOT NULL UNIQUE
+);
+----
+
+.Example change event key
+Every change event that captures a change to the `customers` table has the same event key schema. For as long as the `customers` table has the previous definition, every change event that captures a change to the `customers` table has the following key structure. In JSON, it looks like this:
+
+[source,json,indent=0]
+----
+{
+    "schema": {  // <1>
+        "type": "struct",
+        "fields": [  // <2>
+            {
+                "type": "int32",
+                "optional": false,
+                "field": "ID"
+            }
+        ],
+        "optional": false,  // <3>
+        "name": "mydatabase.MYSCHEMA.CUSTOMERS.Key"  // <4>
+    },
+    "payload": {  // <5>
+        "ID": 1004
+    }
+}
+----
+
+.Description of change event key
+[cols="1,2,7",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`schema`
+|The schema portion of the key specifies a Kafka Connect schema that describes what is in the key's `payload` portion.
+
+|2
+|`fields`
+|Specifies each field that is expected in the `payload`, including each field's name, type, and whether it is required.
+
+|3
+|`optional`
+|Indicates whether the event key must contain a value in its `payload` field. In this example, a value in the key's payload is required. A value in the key's payload field is optional when a table does not have a primary key.
+
+|4
+|`mydatabase.MYSCHEMA.CUSTOMERS.Key`
+a|Name of the schema that defines the structure of the key's payload. This schema describes the structure of the primary key for the table that was changed. Key schema names have the format _connector-name_._database-name_._table-name_.`Key`. In this example: +
+
+* `mydatabase` is the name of the connector that generated this event. +
+* `MYSCHEMA` is the database schema that contains the table that was changed. +
+* `CUSTOMERS` is the table that was updated.
+
+|5
+|`payload`
+|Contains the key for the row for which this change event was generated. In this example, the key, contains a single `ID` field whose value is `1004`.
+
+|===
+
+////
+[NOTE]
+====
+Although the `column.exclude.list` connector configuration property allows you to omit columns from event values, all columns in a primary or unique key are always included in the event's key.
+====
+
+[WARNING]
+====
+If the table does not have a primary or unique key, then the change event's key is null. The rows in a table without a primary or unique key constraint cannot be uniquely identified.
+====
+////
+

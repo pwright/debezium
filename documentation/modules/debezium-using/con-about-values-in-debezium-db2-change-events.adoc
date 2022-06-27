@@ -1,0 +1,31 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Change event values
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-change-event-values
+
+[id="about-values-in-debezium-db2-change-events"]
+= About values in {prodname} Db2 change events
+
+The value in a change event is a bit more complicated than the key. Like the key, the value has a `schema` section and a `payload` section. The `schema` section contains the schema that describes the `Envelope` structure of the `payload` section, including its nested fields. Change events for operations that create, update or delete data all have a value payload with an envelope structure.
+
+Consider the same sample table that was used to show an example of a change event key:
+
+.Example table
+[source,sql,indent=0]
+----
+CREATE TABLE customers (
+ ID INTEGER IDENTITY(1001,1) NOT NULL PRIMARY KEY,
+ FIRST_NAME VARCHAR(255) NOT NULL,
+ LAST_NAME VARCHAR(255) NOT NULL,
+ EMAIL VARCHAR(255) NOT NULL UNIQUE
+);
+----
+
+The event value portion of every change event for the `customers` table specifies the same schema. The event value's payload varies according to the event type:
+
+* <<db2-create-events,_create_ events>>
+* <<db2-update-events,_update_ events>>
+* <<db2-delete-events,_delete_ events>>
+

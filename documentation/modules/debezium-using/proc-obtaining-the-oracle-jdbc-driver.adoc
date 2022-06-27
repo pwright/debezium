@@ -1,47 +1,18 @@
 // Metadata created by nebel
 //
-// ConversionStatus: raw
 // ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
 
 [id="obtaining-the-oracle-jdbc-driver"]
 = Obtaining the Oracle JDBC driver
 
-Due to licensing requirements, the required driver file is not included in the {prodname} Oracle connector archive.
-The following steps describe how to obtain the driver and make it available in your environment.
-ifdef::product[]
+Due to licensing requirements, the Oracle JDBC driver file that {prodname} requires to connect to an Oracle database is not included in the {prodname} Oracle connector archive.
+The driver is available for download from Maven Central.
+Depending on the deployment method that you use, you retrieve the driver by adding a command to the Kafka Connect custom resource or to the Dockerfile that you use to build the connector image.
 
-There are two methods for obtaining the driver, depending on the deployment method that you use.
+* If you use {StreamsName} to add the connector to your Kafka Connect image, add the Maven Central location for the driver to `builds.plugins.artifact.url` in the `KafkaConnect` custom resource as shown in xref:using-streams-to-deploy-debezium-oracle-connectors[].
+* If you use a Dockerfile to build a container image for the connector, insert a `curl` command in the Dockerfile to specify the URL for downloading the required driver file from Maven Central.
+For more information, see xref:deploying-debezium-oracle-connectors[Deploying a {prodname} Oracle connector by building a custom Kafka Connect container image from a Dockerfile].
 
-* If you xref:openshift-streams-oracle-connector-deployment[use {StreamsName} to add the connector to your Kafka Connect image], add an artifact reference to the `KafkaConnect` custom resource and then add the location of the artifact as the `url` value.
-* If you xref:deploying-debezium-oracle-connectors[use a Dockerfile to build the connector], download the required driver file directly from Oracle and add it to your Kafka Connect environment.
 
-.Procedure
 
-. Complete one of the following procedures, depending on your deployment type:
-** If you use {StreamsName} to deploy the connector:
-.. In the YAML for the `KafkaConnector` custom resource (CR), add the following URL path for the driver to the `artifacts.url` field for the `debezium-connector-oracle` artifact:
-+
-[source,shell,subs="attributes+"]
-----
-https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/{ojdbc8-version}/ojdbc8-{ojdbc8-version}.jar
-----
-+
-For more information about the YAML file for the `KafkaConnector` CR, see xref:openshift-streams-oracle-connector-deployment[Using {StreamsName} to deploy a {prodname} Oracle connector].
-
-** If you use a Dockerfile to deploy the connector:
-.. From a browser, link:https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/{ojdbc8-version}/ojdbc8-{ojdbc8-version}.jar[download the 'ojdbc8.jar' from Maven Central].
-.. Copy the downloaded driver file to the directory that contains the {prodname} Oracle connector JAR file (that is, `debezium-connector-oracle-{debezium-version}.jar`).
-
-endif::product[]
-ifdef::community[]
-
-NOTE: If you use the {prodname} Oracle connector with Oracle XStream, obtain the JDBC driver as part of the Oracle Instant Client package.
-For more information, see xref:obtaining-oracle-jdbc-driver-and-xstreams-api-files[].
-
-.Procedure
-
-. From a browser, link:https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/{ojdbc8-version}/ojdbc8-{ojdbc8-version}.jar[download the 'ojdbc8.jar' from Maven Central].
-. Copy the downloaded driver file to the directory that contains the {prodname} Oracle connector JAR file (`debezium-connector-oracle-{debezium-version}.jar`).
-endif::community[]
-
-ifdef::community[]

@@ -1,24 +1,23 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: How the Oracle connector works
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: how-the-oracle-connector-works
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: How the Oracle connector works
 
 [id="how-debezium-oracle-connectors-work"]
 = How {prodname} Oracle connectors work
 
-To optimally configure and run a {prodname} Oracle connector, it is helpful to understand how the connector performs snapshots, streams change events, determines Kafka topic names, and uses metadata.
+To optimally configure and run a {prodname} Oracle connector, it is helpful to understand how the connector performs snapshots, streams change events, determines Kafka topic names, uses metadata, and implements event buffering.
 
-ifdef::product[]
-Details are in the following topics:
+For more information, see the following topics:
 
 * xref:how-debezium-oracle-connectors-perform-database-snapshots[]
 * xref:default-names-of-kafka-topics-that-receive-debezium-oracle-change-event-records[]
 * xref:how-debezium-oracle-connectors-expose-database-schema-changes[]
 * xref:debezium-oracle-connector-generated-events-that-represent-transaction-boundaries[]
+* xref:how-the-debezium-oracle-connector-uses-event-buffering[]
 
-endif::product[]
 
 
 include::../../modules/debezium-using/con-how-debezium-oracle-connectors-perform-database-snapshots.adoc[leveloffset=+1]
@@ -32,92 +31,12 @@ include::../../modules/debezium-using/con-how-debezium-oracle-connectors-expose-
 
 include::../../assemblies/debezium-using/assembly-debezium-oracle-connector-generated-events-that-represent-transaction-boundaries.adoc[leveloffset=+1]
 
-[[oracle-event-buffering]]
-.Event buffering
 
-Oracle writes all changes to the redo logs in the order in which they occur, including changes that are later discarded by a rollback.
-As a result, concurrent changes from separate transactions are intertwined.
-When the connector first reads the stream of changes, because it cannot immediately determine which changes are committed or rolled back, it temporarily stores the change events in an internal buffer.
-After a change is committed, the connector writes the change event from the buffer to Kafka.
-The connector drops change events that are discarded by a rollback.
-
-You can configure the buffering mechanism that the connector uses by setting the property xref:oracle-property-log-mining-buffer-type[`log.mining.buffer.type`].
-
-.Heap
-The default buffer type is configured using `memory`.
-Under the default `memory` setting, the connector uses the heap memory of the JVM process to allocate and manage buffered event records.
-If you use the `memory` buffer setting, be sure that the amount of memory that you allocate to the Java process can accommodate long-running and large transactions in your environment.
-
-ifdef::community[]
-[[oracle-event-buffering-infinispan]]
-.Infinispan
-The {prodname} Oracle connector can also be configured to use Infinispan as its cache provider, supporting cache stores both locally with embedded mode or remotely on a server cluster.
-In order to use Infinispan, the xref:oracle-property-log-mining-buffer-type[`log.mining.buffer.type`] must be configured using either `infinispan_embedded` or `infinispan_remote`.
-
-In order to allow flexibility with Infinispan cache configurations, the connector expects a series of cache configuration properties to be supplied when using Infinispan to buffer event data.
-See the xref:oracle-connector-properties[configuration properties] in the `log.mining.buffer.infinispan.cache` namespace.
-The contents of these configuration properties depend on whether the connector is to integrate with a remote Infinispan cluster or to use the embedded engine.
-
-For example, the following illustrates what an embedded configuration would look like for the transaction cache property when using Infinispan in embedded mode:
-
-[source,xml]
-----
-<local-cache name="transactions">
-  <persistence passivation="false">
-    <file-store fetch-state="true" read-only="false" preload="true" shared="false" segmented="false" path="./data" />
-  </persistence>
-</local-cache>
-----
-
-Looking at the configuration in-depth, the cache is configured to be persistent.
-All caches should be configured this way to avoid loss of transaction events across connector restarts if a transaction is in-progress.
-Additionally, the location where the cache is kept is defined by the `path` attribute and this should be a shared location accessible all possible runtime environments.
-
-[NOTE]
-====
-When supplying XML configuration as a JSON connector property value, line breaks must be omitted or replaced with a `\n` character.
-====
-
-Another example, the following illustrates the same cache configured with an Infinispan cluster:
-
-[source,xml]
-----
-<distributed-cache name="transactions" statistics="true">
-  <encoding media-type="application/x-protostream" />
-  <persistence passivation="false">
-    <file-store fetch-state="true" read-only="false" preload="true" shared="false" segmented="false" />
-  </persistence>
-</distributed-cache>
-----
-
-Just like the embedded local-cache configuration from the previous example, this configuration is also defined to be persistent.
-All caches should be configured this way to avoid loss of transaction events across connector restarts if a transaction is in-progress.
-
-However, there are a few differences with noting.
-First, the cache is defined as a distributed cache rather than a local-cache.
-Secondly, the cache is defined to use the `application/x-protostream` encoding, which is required for all Debezium caches.
-And lastly, no `path` attribute is necessary on the file store definition since the Infinispan cluster will handle this automatically.
-
-[IMPORTANT]
-====
-The Infinispan buffer type is considered incubating; the cache formats may change between versions and may require a re-snapshot.
-The migration notes will indicate whether this is needed.
-
-Additionally, when removing a {prodname} Oracle connector that uses the Infinispan buffer, the persisted cache files are not removed from disk automatically.
-If the same buffer location will be used by a new connector deployment, the files should be removed manually before deploying the new connector.
-====
-
-.Infinispan Hotrod client integration
-
-The {prodname} Oracle connector utilizes the Hotrod client to communicate with the Infinispan cluster.
-Any connector property that is prefixed with `log.mining.buffer.infinispan.client.` will be passed directly to the Hotrod client using the `infinispan.client.` namespace, allowing for complete customization of how the client is to interact with the cluster.
-
-There is at least one required configuration property that must be supplied when using this Infinspan mode:
-
-`log.mining.buffer.infinispan.client.hotrod.server_list`::
-Specifies the list of Infinispan server hostname and port combinations, using `<hostname>:<port>` format.
-endif::community[]
+include::../../modules/debezium-using/con-how-the-debezium-oracle-connector-uses-event-buffering.adoc[leveloffset=+1]
 
 
 include::../../modules/debezium-using/con-debezium-oracle-connector-scn-gap-detection.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-how-debezium-manages-offsets-in-databases-that-change-infrequently.adoc[leveloffset=+1]
 

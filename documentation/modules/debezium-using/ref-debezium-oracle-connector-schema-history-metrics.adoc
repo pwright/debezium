@@ -1,9 +1,9 @@
 // Metadata created by nebel
 //
+// ConvertedFromTitle: Schema History Metrics
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
 // ConversionStatus: raw
 // ConvertedFromID: oracle-schema-history-metrics
-// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
-// ConvertedFromTitle: Schema History Metrics
 
 [id="debezium-oracle-connector-schema-history-metrics"]
 = {prodname} Oracle connector schema history metrics
@@ -52,4 +52,4 @@ The following table lists the schema history metrics that are available.
 
 |===
 
-ifdef::community[]
+

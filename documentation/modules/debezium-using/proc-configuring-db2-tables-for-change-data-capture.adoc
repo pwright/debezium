@@ -1,0 +1,151 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Putting tables into capture mode
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+
+[id="configuring-db2-tables-for-change-data-capture"]
+= Configuring Db2 tables for change data capture
+
+To put tables into capture mode, {prodname} provides a set of user-defined functions (UDFs) for your convenience.
+The procedure here shows how to install and run these management UDFs.
+Alternatively, you can run Db2 control commands to put tables into capture mode.
+The administrator must then enable CDC for each table that you want Debezium to capture.
+
+.Prerequisites
+
+* You are logged in to Db2 as the `db2instl` user.
+* On the Db2 host, the Debezium management UDFs are available in the $HOME/asncdctools/src directory.
+ UDFs are available from the link:https://github.com/debezium/debezium-examples/tree/main/tutorial/debezium-db2-init/db2server[Debezium examples repository].
+
+.Procedure
+
+. Compile the {prodname} management UDFs on the Db2 server host by using the `bldrtn`
+command provided with Db2:
++
+[source,shell]
+----
+cd $HOME/asncdctools/src
+----
++
+[source,shell]
+----
+./bldrtn asncdc
+----
+
+. Start the database if it is not already running. Replace `DB_NAME` with the name of the database that you want {prodname} to connect to.
++
+[source,shell]
+----
+db2 start db DB_NAME
+----
+
+. Ensure that JDBC can read the Db2 metadata catalog:
++
+[source,shell]
+----
+cd $HOME/sqllib/bnd
+----
++
+[source,shell]
+----
+db2 bind db2schema.bnd blocking all grant public sqlerror continue
+----
+
+. Ensure that the database was recently backed-up. The ASN agents must have a recent starting point to read from. If you need to perform a backup, run the following commands, which prune the data so that only the most recent version is available. If you do not need to retain the older versions of the data, specify `dev/null` for the backup location.
+
+.. Back up the database. Replace `DB_NAME` and `BACK_UP_LOCATION` with appropriate values:
++
+[source,shell]
+----
+db2 backup db DB_NAME to BACK_UP_LOCATION
+----
+
+.. Restart the database:
++
+[source,shell]
+----
+db2 restart db DB_NAME
+----
+
+. Connect to the database to install the {prodname} management UDFs. It is assumed that you are logged in as the `db2instl` user so the UDFs should be installed on the `db2inst1` user.
++
+[source,shell]
+----
+db2 connect to DB_NAME
+----
+
+. Copy the {prodname} management UDFs and set permissions for them:
++
+[source,shell]
+----
+cp $HOME/asncdctools/src/asncdc $HOME/sqllib/function
+----
++
+[source,shell]
+----
+chmod 777 $HOME/sqllib/function
+----
+
+. Enable the {prodname} UDF that starts and stops the ASN capture agent:
++
+[source,shell]
+----
+db2 -tvmf $HOME/asncdctools/src/asncdc_UDF.sql
+----
+
+. Create the ASN control tables:
++
+[source,shell]
+----
+$ db2 -tvmf $HOME/asncdctools/src/asncdctables.sql
+----
+
+. Enable the {prodname} UDF that adds tables to capture mode and removes tables from capture mode:
++
+[source,shell]
+----
+$ db2 -tvmf $HOME/asncdctools/src/asncdcaddremove.sql
+----
++
+After you set up the Db2 server, use the UDFs to control Db2 replication (ASN) with SQL commands.
+Some of the UDFs expect a return value in which case you use the SQL `VALUE` statement to invoke them.
+For other UDFs, use the SQL `CALL` statement.
+
+. Start the ASN agent:
++
+[source,sql]
+----
+VALUES ASNCDC.ASNCDCSERVICES('start','asncdc');
+----
++
+The preceding statement returns one of the following results:
++
+* `asncap is already running`
+* `+start -->+` `_<COMMAND>_`
++
+In this case, enter the specified `_<COMMAND>_` in the terminal window as shown in the following example:
++
+[source,shell]
+----
+/database/config/db2inst1/sqllib/bin/asncap capture_schema=asncdc capture_server=SAMPLE &
+----
+
+. Put tables into capture mode. Invoke the following statement for each table that you want to put into capture. Replace `MYSCHEMA`  with the name of the schema that contains the table you want to put into capture mode. Likewise, replace `MYTABLE` with the name of the table to put into capture mode:
++
+[source,sql]
+----
+CALL ASNCDC.ADDTABLE('MYSCHEMA', 'MYTABLE');
+----
+
+. Reinitialize the ASN service:
++
+[source,sql]
+----
+VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc');
+----
+
+.Additional resource
+
+xref:{link-db2-connector}#managing-debezium-db2-connectors[Reference table for {prodname} Db2 management UDFs]
+

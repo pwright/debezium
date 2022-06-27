@@ -1,0 +1,479 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Data change events
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-events
+
+[id="descriptions-of-debezium-db2-connector-data-change-events"]
+= Descriptions of {prodname} Db2 connector data change events
+
+The {prodname} Db2 connector generates a data change event for each row-level `INSERT`, `UPDATE`, and `DELETE` operation. Each event contains a key and a value. The structure of the key and the value depends on the table that was changed.
+
+{prodname} and Kafka Connect are designed around _continuous streams of event messages_. However, the structure of these events may change over time, which can be difficult for consumers to handle. To address this, each event contains the schema for its content or, if you are using a schema registry, a schema ID that a consumer can use to obtain the schema from the registry. This makes each event self-contained.
+
+The following skeleton JSON shows the basic four parts of a change event. However, how you configure the Kafka Connect converter that you choose to use in your application determines the representation of these four parts in change events. A `schema` field is in a change event only when you configure the converter to produce it. Likewise, the event key and event payload are in a change event only if you configure a converter to produce it. If you use the JSON converter and you configure it to produce all four basic change event parts, change events have this structure:
+
+[source,json,index=0]
+----
+{
+ "schema": { // <1>
+   ...
+  },
+ "payload": { // <2>
+   ...
+ },
+ "schema": { // <3>
+   ...
+ },
+ "payload": { // <4>
+   ...
+ },
+}
+----
+
+.Overview of change event basic content
+[cols="1,2,7",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`schema`
+|The first `schema` field is part of the event key. It specifies a Kafka Connect schema that describes what is in the event key's `payload` portion. In other words, the first `schema` field describes the structure of the primary key, or the unique key if the table does not have a primary key, for the table that was changed. +
+ +
+It is possible to override the table's primary key by setting the xref:{link-db2-connector}#db2-property-message-key-columns[`message.key.columns` connector configuration property]. In this case, the first schema field describes the structure of the the key identified by that property.
+
+|2
+|`payload`
+|The first `payload` field is part of the event key. It has the structure described by the previous `schema` field and it contains the key for the row that was changed.
+
+|3
+|`schema`
+|The second `schema` field is part of the event value. It specifies the Kafka Connect schema that describes what is in the event value's `payload` portion. In other words, the second `schema` describes the structure of the row that was changed. Typically, this schema contains nested schemas.
+
+|4
+|`payload`
+|The second `payload` field is part of the event value. It has the structure described by the previous `schema` field and it contains the actual data for the row that was changed.
+
+|===
+
+By default, the connector streams change event records to topics with names that are the same as the event's originating table. See xref:{link-db2-connector}#db2-topic-names[topic names].
+
+[WARNING]
+====
+The {prodname} Db2 connector ensures that all Kafka Connect schema names adhere to the link:http://avro.apache.org/docs/current/spec.html#names[Avro schema name format]. This means that the logical server name must start with a Latin letter or an underscore, that is, a-z, A-Z, or \_. Each remaining character in the logical server name and each character in the database and table names must be a Latin letter, a digit, or an underscore, that is, a-z, A-Z, 0-9, or \_. If there is an invalid character it is replaced with an underscore character.
+
+This can lead to unexpected conflicts if the logical server name, a database name, or a table name contains invalid characters, and the only characters that distinguish names from one another are invalid and thus replaced with underscores.
+
+Also, Db2 names for databases, schemas, and tables can be case sensitive. This means that the connector could emit event records for more than one table to the same Kafka topic.
+====
+
+Details are in the following topics:
+
+* xref:about-keys-in-debezium-db2-change-events[]
+* xref:about-values-in-debezium-db2-change-events[]
+
+
+
+include::../../modules/debezium-using/con-about-keys-in-debezium-db2-change-events.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-about-values-in-debezium-db2-change-events.adoc[leveloffset=+1]
+
+[[db2-create-events]]
+._create_ events
+
+The following example shows the value portion of a change event that the connector generates for an operation that creates data in the `customers` table:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+  "schema": {  // <1>
+    "type": "struct",
+    "fields": [
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "ID"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "FIRST_NAME"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "LAST_NAME"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "EMAIL"
+          }
+        ],
+        "optional": true,
+        "name": "mydatabase.MYSCHEMA.CUSTOMERS.Value",  // <2>
+        "field": "before"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "ID"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "FIRST_NAME"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "LAST_NAME"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "EMAIL"
+          }
+        ],
+        "optional": true,
+        "name": "mydatabase.MYSCHEMA.CUSTOMERS.Value",
+        "field": "after"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "string",
+            "optional": false,
+            "field": "version"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "connector"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "name"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "ts_ms"
+          },
+          {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "field": "snapshot"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "db"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "schema"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "table"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "change_lsn"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "commit_lsn"
+          },
+        ],
+        "optional": false,
+        "name": "io.debezium.connector.db2.Source",  // <3>
+        "field": "source"
+      },
+      {
+        "type": "string",
+        "optional": false,
+        "field": "op"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "ts_ms"
+      }
+    ],
+    "optional": false,
+    "name": "mydatabase.MYSCHEMA.CUSTOMERS.Envelope"  // <4>
+  },
+  "payload": {  // <5>
+    "before": null,  // <6>
+    "after": {  // <7>
+      "ID": 1005,
+      "FIRST_NAME": "john",
+      "LAST_NAME": "doe",
+      "EMAIL": "john.doe@example.org"
+    },
+    "source": {  // <8>
+      "version": "{debezium-version}",
+      "connector": "db2",
+      "name": "myconnector",
+      "ts_ms": 1559729468470,
+      "snapshot": false,
+      "db": "mydatabase",
+      "schema": "MYSCHEMA",
+      "table": "CUSTOMERS",
+      "change_lsn": "00000027:00000758:0003",
+      "commit_lsn": "00000027:00000758:0005",
+    },
+    "op": "c",  // <9>
+    "ts_ms": 1559729471739  // <10>
+  }
+}
+----
+
+.Descriptions of _create_ event value fields
+[cols="1,2,7",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`schema`
+|The value's schema, which describes the structure of the value's payload. A change event's value schema is the same in every change event that the connector generates for a particular table.
+
+|2
+|`name`
+a|In the `schema` section, each `name` field specifies the schema for a field in the value's payload. +
+ +
+`mydatabase.MYSCHEMA.CUSTOMERS.Value` is the schema for the payload's `before` and `after` fields. This schema is specific to the `customers` table. The connector uses this schema for all rows in the `MYSCHEMA.CUSTOMERS` table. +
+ +
+Names of schemas for `before` and `after` fields are of the form `_logicalName_._schemaName_._tableName_.Value`, which ensures that the schema name is unique in the database.
+This means that when using the xref:{link-avro-serialization}#avro-serialization[Avro converter], the resulting Avro schema for each table in each logical source has its own evolution and history.
+
+|3
+|`name`
+a|`io.debezium.connector.db2.Source` is the schema for the payload's `source` field. This schema is specific to the Db2 connector. The connector uses it for all events that it generates.
+
+|4
+|`name`
+a|`mydatabase.MYSCHEMA.CUSTOMERS.Envelope` is the schema for the overall structure of the payload, where `mydatabase` is the database, `MYSCHEMA` is the schema, and `CUSTOMERS` is the table.
+
+|5
+|`payload`
+|The value's actual data. This is the information that the change event is providing. +
+ +
+It may appear that JSON representations of events are much larger than the rows they describe. This is because a JSON representation must include the schema portion and the payload portion of the message.
+However, by using the xref:{link-avro-serialization}#avro-serialization[Avro converter], you can significantly decrease the size of the messages that the connector streams to Kafka topics.
+
+|6
+|`before`
+|An optional field that specifies the state of the row before the event occurred. When the `op` field is `c` for create, as it is in this example, the `before` field is `null` since this change event is for new content.
+
+|7
+|`after`
+|An optional field that specifies the state of the row after the event occurred. In this example, the `after` field contains the values of the new row's `ID`, `FIRST_NAME`, `LAST_NAME`, and `EMAIL` columns.
+
+|8
+|`source`
+a| Mandatory field that describes the source metadata for the event. The `source` structure shows Db2 information about this change, which provides traceability. It also has information you can use to compare to other events in the same topic or in other topics to know whether this event occurred before, after, or as part of the same commit as other events. The source metadata includes:
+
+* {prodname} version
+* Connector type and name
+* Timestamp for when the change was made in the database
+* Whether the event is part of an ongoing snapshot
+* Name of the database, schema, and table that contain the new row
+* Change LSN
+* Commit LSN (omitted if this event is part of a snapshot)
+
+|9
+|`op`
+a|Mandatory string that describes the type of operation that caused the connector to generate the event. In this example, `c` indicates that the operation created a row. Valid values are:
+
+* `c` = create
+* `u` = update
+* `d` = delete
+* `r` = read (applies to only snapshots)
+
+|10
+|`ts_ms`
+a|Optional field that displays the time at which the connector processed the event. The time is based on the system clock in the JVM running the Kafka Connect task. +
+ +
+In the `source` object, `ts_ms` indicates the time that the change was made in the database. By comparing the value for `payload.source.ts_ms` with the value for `payload.ts_ms`, you can determine the lag between the source database update and {prodname}.
+
+|===
+
+[[db2-update-events]]
+._update_ events
+The value of a change event for an update in the sample `customers` table has the same schema as a _create_ event for that table. Likewise, the _update_ event value's payload has the same structure. However, the event value payload contains different values in an _update_ event. Here is an example of a change event value in an event that the connector generates for an update in the `customers` table:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+  "schema": { ... },
+  "payload": {
+    "before": {  // <1>
+      "ID": 1005,
+      "FIRST_NAME": "john",
+      "LAST_NAME": "doe",
+      "EMAIL": "john.doe@example.org"
+    },
+    "after": {  // <2>
+      "ID": 1005,
+      "FIRST_NAME": "john",
+      "LAST_NAME": "doe",
+      "EMAIL": "noreply@example.org"
+    },
+    "source": {  // <3>
+      "version": "{debezium-version}",
+      "connector": "db2",
+      "name": "myconnector",
+      "ts_ms": 1559729995937,
+      "snapshot": false,
+      "db": "mydatabase",
+      "schema": "MYSCHEMA",
+      "table": "CUSTOMERS",
+      "change_lsn": "00000027:00000ac0:0002",
+      "commit_lsn": "00000027:00000ac0:0007",
+    },
+    "op": "u",  // <4>
+    "ts_ms": 1559729998706  // <5>
+  }
+}
+----
+
+.Descriptions of _update_ event value fields
+[cols="1,2,7",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`before`
+|An optional field that specifies the state of the row before the event occurred. In an _update_ event value, the `before` field contains a field for each table column and the value that was in that column before the database commit. In this example, note that the `EMAIL` value is `john.doe@example.com`.
+
+|2
+|`after`
+| An optional field that specifies the state of the row after the event occurred. You can compare the `before` and `after` structures to determine what the update to this row was. In the example, the `EMAIL` value is now `noreply@example.com`.
+
+|3
+|`source`
+a|Mandatory field that describes the source metadata for the event. The `source` field structure contains the same fields as in a _create_ event, but some values are different, for example, the sample _update_ event has different LSNs. You can use this information to compare this event to other events to know whether this event occurred before, after, or as part of the same commit as other events. The source metadata includes:
+
+* {prodname} version
+* Connector type and name
+* Timestamp for when the change was made in the database
+* Whether the event is part of an ongoing snapshot
+* Name of the database, schema, and table that contain the new row
+* Change LSN
+* Commit LSN (omitted if this event is part of a snapshot)
+
+|4
+|`op`
+a|Mandatory string that describes the type of operation. In an _update_ event value, the `op` field value is `u`, signifying that this row changed because of an update.
+
+|5
+|`ts_ms`
+a|Optional field that displays the time at which the connector processed the event. The time is based on the system clock in the JVM running the Kafka Connect task. +
+ +
+In the `source` object, `ts_ms` indicates the time that the change was made in the database. By comparing the value for `payload.source.ts_ms` with the value for `payload.ts_ms`, you can determine the lag between the source database update and {prodname}.
+
+|===
+
+[NOTE]
+====
+Updating the columns for a row's primary/unique key changes the value of the row's key. When a key changes, {prodname} outputs _three_ events: a `DELETE` event and a xref:{link-db2-connector}#db2-tombstone-events[tombstone event] with the old key for the row, followed by an event with the new key for the row.
+====
+
+[[db2-delete-events]]
+._delete_ events
+
+The value in a _delete_ change event has the same `schema` portion as _create_ and _update_ events for the same table. The event value `payload` in a _delete_ event for the sample `customers` table looks like this:
+
+[source,json,indent=0,subs="+attributes"]
+----
+{
+  "schema": { ... },
+  },
+  "payload": {
+    "before": {  // <1>
+      "ID": 1005,
+      "FIRST_NAME": "john",
+      "LAST_NAME": "doe",
+      "EMAIL": "noreply@example.org"
+    },
+    "after": null,  // <2>
+    "source": {  // <3>
+      "version": "{debezium-version}",
+      "connector": "db2",
+      "name": "myconnector",
+      "ts_ms": 1559730445243,
+      "snapshot": false,
+      "db": "mydatabase",
+      "schema": "MYSCHEMA",
+      "table": "CUSTOMERS",
+      "change_lsn": "00000027:00000db0:0005",
+      "commit_lsn": "00000027:00000db0:0007"
+    },
+    "op": "d",  // <4>
+    "ts_ms": 1559730450205  // <5>
+  }
+}
+----
+
+.Descriptions of _delete_ event value fields
+[cols="1,2,7",options="header"]
+|===
+|Item |Field name |Description
+
+|1
+|`before`
+|Optional field that specifies the state of the row before the event occurred. In a _delete_ event value, the `before` field contains the values that were in the row before it was deleted with the database commit.
+
+|2
+|`after`
+| Optional field that specifies the state of the row after the event occurred. In a _delete_ event value, the `after` field is `null`, signifying that the row no longer exists.
+
+|3
+|`source`
+a|Mandatory field that describes the source metadata for the event. In a _delete_ event value, the `source` field structure is the same as for _create_ and _update_ events for the same table. Many `source` field values are also the same. In a _delete_ event value, the `ts_ms` and LSN field values, as well as other values, might have changed. But the `source` field in a _delete_ event value provides the same metadata:
+
+* {prodname} version
+* Connector type and name
+* Timestamp for when the change was made in the database
+* Whether the event is part of an ongoing snapshot
+* Name of the database, schema, and table that contain the new row
+* Change LSN
+* Commit LSN (omitted if this event is part of a snapshot)
+
+|4
+|`op`
+a|Mandatory string that describes the type of operation. The `op` field value is `d`, signifying that this row was deleted.
+
+|5
+|`ts_ms`
+a|Optional field that displays the time at which the connector processed the event. The time is based on the system clock in the JVM running the Kafka Connect task. +
+ +
+In the `source` object, `ts_ms` indicates the time that the change was made in the database. By comparing the value for `payload.source.ts_ms` with the value for `payload.ts_ms`, you can determine the lag between the source database update and {prodname}.
+
+|===
+
+A _delete_ change event record provides a consumer with the information it needs to process the removal of this row. The old values are included because some consumers might require them in order to properly handle the removal.
+
+Db2 connector events are designed to work with link:{link-kafka-docs}/#compaction[Kafka log compaction]. Log compaction enables removal of some older messages as long as at least the most recent message for every key is kept. This lets Kafka reclaim storage space while ensuring that the topic contains a complete data set and can be used for reloading key-based state.
+
+[[db2-tombstone-events]]
+When a row is deleted, the _delete_ event value still works with log compaction, because Kafka can remove all earlier messages that have that same key. However, for Kafka to remove all messages that have that same key, the message value must be `null`. To make this possible, after {prodname}’s Db2 connector emits a _delete_ event, the connector emits a special tombstone event that has the same key but a `null` value.
+

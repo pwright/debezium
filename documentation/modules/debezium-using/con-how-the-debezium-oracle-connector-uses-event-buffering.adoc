@@ -1,0 +1,24 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Event buffering
+// ConvertedFromFile: modules/ROOT/pages/connectors/oracle.adoc
+// ConversionStatus: raw
+// ConvertedFromID: oracle-event-buffering
+
+[id="how-the-debezium-oracle-connector-uses-event-buffering"]
+= How the {prodname} Oracle connector uses event buffering
+
+Oracle writes all changes to the redo logs in the order in which they occur, including changes that are later discarded by a rollback.
+As a result, concurrent changes from separate transactions are intertwined.
+When the connector first reads the stream of changes, because it cannot immediately determine which changes are committed or rolled back, it temporarily stores the change events in an internal buffer.
+After a change is committed, the connector writes the change event from the buffer to Kafka.
+The connector drops change events that are discarded by a rollback.
+
+You can configure the buffering mechanism that the connector uses by setting the property xref:oracle-property-log-mining-buffer-type[`log.mining.buffer.type`].
+
+.Heap
+The default buffer type is configured using `memory`.
+Under the default `memory` setting, the connector uses the heap memory of the JVM process to allocate and manage buffered event records.
+If you use the `memory` buffer setting, be sure that the amount of memory that you allocate to the Java process can accommodate long-running and large transactions in your environment.
+
+

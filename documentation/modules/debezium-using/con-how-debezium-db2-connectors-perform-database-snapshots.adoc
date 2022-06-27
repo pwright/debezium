@@ -1,0 +1,32 @@
+// Metadata created by nebel
+//
+// ConvertedFromTitle: Snapshots
+// ConvertedFromFile: modules/ROOT/pages/connectors/db2.adoc
+// ConversionStatus: raw
+// ConvertedFromID: db2-snapshots
+
+[id="how-debezium-db2-connectors-perform-database-snapshots"]
+= How {prodname} Db2 connectors perform database snapshots
+
+Db2`s replication feature is not designed to store the complete history of database changes. Consequently, when a {prodname} Db2 connector connects to a database for the first time, it takes a consistent snapshot of tables that are in capture mode and streams this state to Kafka. This establishes the baseline for table content.
+
+By default, when a Db2 connector performs a snapshot, it does the following:
+
+. Determines which tables are in capture mode, and thus must be included in the snapshot. By default, all non-system tables are in capture mode. Connector configuration properties, such as `table.exclude.list` and `table.include.list` let you specify which tables should be in capture mode.
+. Obtains a lock on each of the tables in capture mode. This ensures that no schema changes can occur in those tables during the snapshot.
+The level of the lock is determined by the `snapshot.isolation.mode` connector  configuration property.
+. Reads the highest (most recent) LSN position in the server's transaction log.
+. Captures the schema of all tables that are in capture mode. The connector persists this information in its internal database history topic.
+. Optional, releases the locks obtained in step 2. Typically, these locks are held for only a short time.
+. At the LSN position read in step 3, the connector scans the capture mode tables as well as their schemas. During the scan, the connector:
+.. Confirms that the table was created before the start of the snapshot. If it was not, the snapshot skips that table. After the snapshot is complete, and the connector starts emitting change events, the connector produces change events for any tables that were created during the snapshot.
+.. Produces a _read_ event for each row in each table that is in capture mode. All _read_ events contain the same LSN position, which is the LSN position that was obtained in step 3.
+.. Emits each _read_ event to the Kafka topic that has the same name as the table.
+. Records the successful completion of the snapshot in the connector offsets.
+
+
+include::../../modules/debezium-using/con-debezium-db2-ad-hoc-snapshots.adoc[leveloffset=+1]
+
+
+include::../../modules/debezium-using/con-db2-incremental-snapshots.adoc[leveloffset=+1]
+
