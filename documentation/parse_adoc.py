@@ -4,7 +4,8 @@ parse_adoc.py
 
 Scan a directory (or list of file paths from stdin) for .adoc files,
 compute file metadata and line-based metrics, and record each result
-in a SQLite database, storing file paths relative to the scanned directory.
+in a SQLite database, storing file paths relative to the scanned directory
+and the filename separately.
 
 Usage:
     # scan a directory
@@ -38,43 +39,35 @@ logging.basicConfig(
 )
 
 # -----------------------------------------------------------------------------
-# Schema creation
+# SQLite schema for file metadata
 # -----------------------------------------------------------------------------
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS files (
     path TEXT PRIMARY KEY,
+    filename TEXT,
     created TIMESTAMP,
     modified TIMESTAMP,
     size INTEGER,
-    total_lines    INTEGER,
-    alnum_start    INTEGER,
-    special_start  INTEGER,
-    comment_lines  INTEGER,
+    total_lines INTEGER,
+    alnum_start INTEGER,
+    special_start INTEGER,
+    comment_lines INTEGER,
     definition_lines INTEGER
 );
 """
 
 # -----------------------------------------------------------------------------
-# Analyze a single file: return dict of metrics
+# Analyze a single .adoc file
 # -----------------------------------------------------------------------------
 
 def analyze_file(path, base_dir):
     """
-    Read the file at `path` and compute:
-      - created, modified, size
-      - total_lines
-      - alnum_start
-      - special_start (non-alnum, excluding ':' and '/')
-      - comment_lines (start with '//')
-      - definition_lines (start with ':')
-
-    Store `path` relative to `base_dir`.
-
-    Returns a dict ready for DB insertion.
+    Analyze file at 'path' and compute metadata and line counts.
+    Returns dict with 'path' (relative to base_dir), 'filename', and metrics.
     """
     try:
         st = os.stat(path)
-    except Exception as e:
+    except OSError as e:
         logging.error(f"Cannot stat {path!r}: {e}")
         return None
 
@@ -85,33 +78,39 @@ def analyze_file(path, base_dir):
     total = alnum = special = comments = defs = 0
 
     try:
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
             for raw in f:
                 total += 1
-                line = raw.lstrip()
-                if not line:
+                stripped = raw.lstrip()
+                if not stripped:
                     continue
-                # comment?
-                if line.startswith('//'):
+                if stripped.startswith('//'):
                     comments += 1
-                    continue
-                # definition?
-                if line.startswith(':'):
+                elif stripped.startswith(':'):
                     defs += 1
-                    continue
-                first = line[0]
-                if first.isalnum():
-                    alnum += 1
                 else:
-                    special += 1
+                    first = stripped[0]
+                    if first.isalnum():
+                        alnum += 1
+                    else:
+                        special += 1
     except Exception as e:
         logging.error(f"Error reading {path!r}: {e}")
         return None
 
-    rel_path = os.path.relpath(path, base_dir)
+    # Compute relative path
+    abs_base = os.path.abspath(base_dir)
+    abs_path = os.path.abspath(path)
+    if abs_path.startswith(abs_base + os.sep):
+        rel = abs_path[len(abs_base) + 1:]
+    else:
+        rel = os.path.basename(abs_path)
+
+    filename = os.path.basename(rel)
 
     return {
-        'path': rel_path,
+        'path': rel,
+        'filename': filename,
         'created': created,
         'modified': modified,
         'size': size,
@@ -123,80 +122,83 @@ def analyze_file(path, base_dir):
     }
 
 # -----------------------------------------------------------------------------
-# Process a list of files (optionally in parallel)
+# Process files in parallel
 # -----------------------------------------------------------------------------
 
 def process_files(paths, base_dir, workers=4):
-    """
-    Given an iterable of file paths, analyze them (in a thread pool)
-    and yield only the successful result dicts.
-    """
-    with ThreadPoolExecutor(max_workers=workers) as exe:
-        for result in exe.map(lambda p: analyze_file(p, base_dir), paths):
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        for result in executor.map(lambda p: analyze_file(p, base_dir), paths):
             if result:
                 yield result
 
 # -----------------------------------------------------------------------------
-# SQLite insertion
+# Insert records into SQLite
 # -----------------------------------------------------------------------------
 
 def write_to_db(db_path, records):
-    """
-    Given an iterable of record dicts, insert or replace them into the DB.
-    """
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     cur.execute(SCHEMA)
-    to_insert = [tuple(r[k] for k in (
-        'path','created','modified','size',
-        'total_lines','alnum_start','special_start',
-        'comment_lines','definition_lines'
-    )) for r in records]
-    cur.executemany("""
-        INSERT OR REPLACE INTO files
-        (path,created,modified,size,total_lines,alnum_start,
-         special_start,comment_lines,definition_lines)
-        VALUES (?,?,?,?,?,?,?,?,?)
-    """, to_insert)
+    insert_q = (
+        "INSERT OR REPLACE INTO files"
+        " (path,filename,created,modified,size,total_lines,alnum_start,special_start,"
+        "comment_lines,definition_lines) VALUES (?,?,?,?,?,?,?,?,?,?)"
+    )
+    to_insert = [(
+        r['path'], r['filename'], r['created'], r['modified'], r['size'],
+        r['total_lines'], r['alnum_start'], r['special_start'],
+        r['comment_lines'], r['definition_lines']
+    ) for r in records]
+    cur.executemany(insert_q, to_insert)
     conn.commit()
     conn.close()
     return len(to_insert)
 
 # -----------------------------------------------------------------------------
-# Main CLI
+# Main CLI entrypoint
 # -----------------------------------------------------------------------------
 
 def main():
-    p = argparse.ArgumentParser(description="Index .adoc files into SQLite (relative paths)")
-    p.add_argument('directory', nargs='?', default=None,
-                   help="Directory to scan for .adoc, or '-' to read file paths from stdin")
-    p.add_argument('--db', '-o', default='files.db',
-                   help="Output SQLite DB (default: files.db)")
-    p.add_argument('--summary', action='store_true',
-                   help="Print TSV summary to stdout after indexing")
-    p.add_argument('--workers', type=int, default=4,
-                   help="Number of worker threads (default: 4)")
-    args = p.parse_args()
+    parser = argparse.ArgumentParser(
+        description="Index .adoc files into SQLite with relative paths"
+    )
+    parser.add_argument(
+        'directory', nargs='?', default=None,
+        help="Directory to scan for .adoc, or '-' to read file paths from stdin"
+    )
+    parser.add_argument(
+        '--db', '-o', default='files.db',
+        help="SQLite DB path (default: files.db)"
+    )
+    parser.add_argument(
+        '--summary', action='store_true',
+        help="Print TSV summary to stdout"
+    )
+    parser.add_argument(
+        '--workers', type=int, default=4,
+        help="Number of parallel workers (default: 4)"
+    )
+    args = parser.parse_args()
 
-    # Determine base directory and file list
+    # Determine base_dir and file list
     if args.directory == '-':
-        base_dir = os.getcwd()
+        base_dir = os.path.abspath(os.getcwd())
         files = (line.strip() for line in sys.stdin if line.strip())
     elif args.directory:
-        if not os.path.isdir(args.directory):
-            logging.error(f"Not a directory: {args.directory!r}")
+        base_dir = os.path.abspath(args.directory)
+        if not os.path.isdir(base_dir):
+            logging.error(f"Not a directory: {base_dir!r}")
             sys.exit(1)
-        base_dir = args.directory
         files = (
-            os.path.join(root, fn)
-            for root,_,fns in os.walk(args.directory)
-            for fn in fns if fn.lower().endswith('.adoc')
+            os.path.join(root, name)
+            for root, _, names in os.walk(base_dir)
+            for name in names if name.lower().endswith('.adoc')
         )
     else:
-        p.print_usage()
+        parser.print_usage()
         sys.exit(1)
 
-    logging.info(f"Scanning directory: {base_dir}")
+    logging.info(f"Base directory: {base_dir}")
     logging.info("Starting analysis…")
     records = list(process_files(files, base_dir, workers=args.workers))
     logging.info(f"Analyzed {len(records)} files.")
@@ -205,20 +207,19 @@ def main():
     logging.info(f"Wrote {count} records to {args.db!r}")
 
     if args.summary:
-        out = sys.stdout
-        headers = [
-            "path","created","modified","size",
+        cols = [
+            "path","filename","created","modified","size",
             "total","alnum","special","comments","defs"
         ]
-        out.write("\t".join(headers) + "\n")
+        print("\t".join(cols))
         for r in records:
             row = [
-                r['path'], r['created'], r['modified'],
+                r['path'], r['filename'], r['created'], r['modified'],
                 str(r['size']), str(r['total_lines']),
                 str(r['alnum_start']), str(r['special_start']),
                 str(r['comment_lines']), str(r['definition_lines'])
             ]
-            out.write("\t".join(row) + "\n")
+            print("\t".join(row))
 
 if __name__ == '__main__':
     main()
