@@ -1,0 +1,17 @@
+site:
+  title: Local Docs
+  start_page: ROOT::index.adoc
+
+content:
+  sources:
+    - url: .
+      branches: HEAD
+      start_path: documentation
+
+output:
+  dir: ./build/site
+
+ui:
+  bundle:
+    url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/main/raw/build/ui-bundle.zip?job=build
+    snapshot: true
