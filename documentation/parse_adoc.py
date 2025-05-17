@@ -3,9 +3,10 @@
 parse_adoc.py
 
 Scan a directory (or list of file paths from stdin) for .adoc files,
-compute file metadata and line-based metrics, and record each result
-in a SQLite database, storing file paths relative to the scanned directory
-and the filename separately.
+compute file metadata and line-based metrics, record each result
+in a SQLite database, storing file paths relative to the scanned directory,
+with a separate definitions table and a join table for many-to-many mapping
+between files and unique definition lines.
 
 Usage:
     # scan a directory
@@ -15,8 +16,8 @@ Usage:
     find . -name '*.adoc' | ./parse_adoc.py - --db files.db
 
 Outputs:
-  - SQLite DB (default: files.db) with table 'files'
-  - If --summary, prints tab-separated summary lines to stdout
+  - SQLite DB (default: files.db) with tables 'files', 'definitions', 'file_definitions'
+  - If --summary, prints tab-separated summary of files to stdout
 
 Errors and warnings go to stderr so they won't corrupt your data stream.
 """
@@ -30,7 +31,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 # -----------------------------------------------------------------------------
-# Configuration of logging: all logs to stderr
+# Logging config: send to stderr
 # -----------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +40,7 @@ logging.basicConfig(
 )
 
 # -----------------------------------------------------------------------------
-# SQLite schema for file metadata
+# SQLite schema: files, definitions, join table
 # -----------------------------------------------------------------------------
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS files (
@@ -52,7 +53,17 @@ CREATE TABLE IF NOT EXISTS files (
     alnum_start INTEGER,
     special_start INTEGER,
     comment_lines INTEGER,
-    definition_lines INTEGER
+    definition_count INTEGER
+);
+CREATE TABLE IF NOT EXISTS definitions (
+    definition TEXT PRIMARY KEY
+);
+CREATE TABLE IF NOT EXISTS file_definitions (
+    path TEXT,
+    definition TEXT,
+    PRIMARY KEY(path, definition),
+    FOREIGN KEY(path) REFERENCES files(path),
+    FOREIGN KEY(definition) REFERENCES definitions(definition)
 );
 """
 
@@ -62,8 +73,12 @@ CREATE TABLE IF NOT EXISTS files (
 
 def analyze_file(path, base_dir):
     """
-    Analyze file at 'path' and compute metadata and line counts.
-    Returns dict with 'path' (relative to base_dir), 'filename', and metrics.
+    Analyze file at 'path', compute metadata and line counts, collect definition lines.
+    Returns dict with keys:
+      - path (relative to base_dir)
+      - filename
+      - created, modified, size, total_lines, alnum_start, special_start, comment_lines, definition_count
+      - definitions_list: list of unique definition lines (with leading ':' stripped)
     """
     try:
         st = os.stat(path)
@@ -75,7 +90,8 @@ def analyze_file(path, base_dir):
     modified = datetime.fromtimestamp(st.st_mtime).isoformat()
     size = st.st_size
 
-    total = alnum = special = comments = defs = 0
+    total = alnum = special = comments = 0
+    definitions_set = set()
 
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -87,7 +103,10 @@ def analyze_file(path, base_dir):
                 if stripped.startswith('//'):
                     comments += 1
                 elif stripped.startswith(':'):
-                    defs += 1
+                    # Definition line: strip leading ':' and whitespace
+                    definition = stripped[1:].strip()
+                    if definition:
+                        definitions_set.add(definition)
                 else:
                     first = stripped[0]
                     if first.isalnum():
@@ -105,7 +124,6 @@ def analyze_file(path, base_dir):
         rel = abs_path[len(abs_base) + 1:]
     else:
         rel = os.path.basename(abs_path)
-
     filename = os.path.basename(rel)
 
     return {
@@ -118,7 +136,8 @@ def analyze_file(path, base_dir):
         'alnum_start': alnum,
         'special_start': special,
         'comment_lines': comments,
-        'definition_lines': defs
+        'definition_count': len(definitions_set),
+        'definitions_list': list(definitions_set)
     }
 
 # -----------------------------------------------------------------------------
@@ -132,27 +151,39 @@ def process_files(paths, base_dir, workers=4):
                 yield result
 
 # -----------------------------------------------------------------------------
-# Insert records into SQLite
+# Insert into SQLite: files, definitions, and join table
 # -----------------------------------------------------------------------------
 
 def write_to_db(db_path, records):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
-    cur.execute(SCHEMA)
-    insert_q = (
+    cur.executescript(SCHEMA)
+
+    # Prepare insert statements
+    insert_file = (
         "INSERT OR REPLACE INTO files"
         " (path,filename,created,modified,size,total_lines,alnum_start,special_start,"
-        "comment_lines,definition_lines) VALUES (?,?,?,?,?,?,?,?,?,?)"
+        "comment_lines,definition_count)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?)"
     )
-    to_insert = [(
-        r['path'], r['filename'], r['created'], r['modified'], r['size'],
-        r['total_lines'], r['alnum_start'], r['special_start'],
-        r['comment_lines'], r['definition_lines']
-    ) for r in records]
-    cur.executemany(insert_q, to_insert)
+    insert_def = "INSERT OR IGNORE INTO definitions(definition) VALUES (?)"
+    insert_join = "INSERT OR IGNORE INTO file_definitions(path,definition) VALUES (?,?)"
+
+    # Insert each record and its definitions
+    for r in records:
+        cur.execute(insert_file, (
+            r['path'], r['filename'], r['created'], r['modified'], r['size'],
+            r['total_lines'], r['alnum_start'], r['special_start'],
+            r['comment_lines'], r['definition_count']
+        ))
+        # Definitions
+        for definition in r['definitions_list']:
+            cur.execute(insert_def, (definition,))
+            cur.execute(insert_join, (r['path'], definition))
+
     conn.commit()
     conn.close()
-    return len(to_insert)
+    return len(records)
 
 # -----------------------------------------------------------------------------
 # Main CLI entrypoint
@@ -160,7 +191,7 @@ def write_to_db(db_path, records):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Index .adoc files into SQLite with relative paths"
+        description="Index .adoc files into SQLite with relative paths and definitions"
     )
     parser.add_argument(
         'directory', nargs='?', default=None,
@@ -172,7 +203,7 @@ def main():
     )
     parser.add_argument(
         '--summary', action='store_true',
-        help="Print TSV summary to stdout"
+        help="Print TSV summary of files to stdout"
     )
     parser.add_argument(
         '--workers', type=int, default=4,
@@ -184,19 +215,16 @@ def main():
     if args.directory == '-':
         base_dir = os.path.abspath(os.getcwd())
         files = (line.strip() for line in sys.stdin if line.strip())
-    elif args.directory:
-        base_dir = os.path.abspath(args.directory)
-        if not os.path.isdir(base_dir):
-            logging.error(f"Not a directory: {base_dir!r}")
+    else:
+        base_dir = os.path.abspath(args.directory) if args.directory else None
+        if not base_dir or not os.path.isdir(base_dir):
+            parser.print_usage()
             sys.exit(1)
         files = (
             os.path.join(root, name)
             for root, _, names in os.walk(base_dir)
             for name in names if name.lower().endswith('.adoc')
         )
-    else:
-        parser.print_usage()
-        sys.exit(1)
 
     logging.info(f"Base directory: {base_dir}")
     logging.info("Starting analysis…")
@@ -204,7 +232,7 @@ def main():
     logging.info(f"Analyzed {len(records)} files.")
 
     count = write_to_db(args.db, records)
-    logging.info(f"Wrote {count} records to {args.db!r}")
+    logging.info(f"Wrote metadata for {count} files to {args.db!r}")
 
     if args.summary:
         cols = [
@@ -217,7 +245,7 @@ def main():
                 r['path'], r['filename'], r['created'], r['modified'],
                 str(r['size']), str(r['total_lines']),
                 str(r['alnum_start']), str(r['special_start']),
-                str(r['comment_lines']), str(r['definition_lines'])
+                str(r['comment_lines']), str(r['definition_count'])
             ]
             print("\t".join(row))
 
