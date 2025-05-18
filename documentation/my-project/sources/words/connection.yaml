@@ -1,0 +1,5 @@
+# This file was automatically generated
+name: words
+type: sqlite
+options:
+  filename: words.db

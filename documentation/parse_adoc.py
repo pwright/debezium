@@ -3,10 +3,9 @@
 parse_adoc.py
 
 Scan a directory (or list of file paths from stdin) for .adoc files,
-compute file metadata and line-based metrics, record each result
+compute file metadata and line-based metrics, record results
 in a SQLite database, storing file paths relative to the scanned directory,
-with a separate definitions table and a join table for many-to-many mapping
-between files and unique definition lines.
+with separate tables for attributes, values_tbl, and their relationships to files.
 
 Usage:
     # scan a directory
@@ -16,8 +15,13 @@ Usage:
     find . -name '*.adoc' | ./parse_adoc.py - --db files.db
 
 Outputs:
-  - SQLite DB (default: files.db) with tables 'files', 'definitions', 'file_definitions'
-  - If --summary, prints tab-separated summary of files to stdout
+  - SQLite DB (default: files.db) with tables:
+    - files
+    - attributes
+    - values_tbl
+    - file_attributes (file ↔ attribute)
+    - attribute_values (attribute ↔ value)
+  - If --summary, prints TSV summary of files
 
 Errors and warnings go to stderr so they won't corrupt your data stream.
 """
@@ -40,7 +44,7 @@ logging.basicConfig(
 )
 
 # -----------------------------------------------------------------------------
-# SQLite schema: files, definitions, join table
+# SQLite schema: files, attributes, values_tbl, and join tables
 # -----------------------------------------------------------------------------
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS files (
@@ -55,15 +59,25 @@ CREATE TABLE IF NOT EXISTS files (
     comment_lines INTEGER,
     definition_count INTEGER
 );
-CREATE TABLE IF NOT EXISTS definitions (
-    definition TEXT PRIMARY KEY
+CREATE TABLE IF NOT EXISTS attributes (
+    attribute TEXT PRIMARY KEY
 );
-CREATE TABLE IF NOT EXISTS file_definitions (
+CREATE TABLE IF NOT EXISTS values_tbl (
+    value TEXT PRIMARY KEY
+);
+CREATE TABLE IF NOT EXISTS file_attributes (
     path TEXT,
-    definition TEXT,
-    PRIMARY KEY(path, definition),
+    attribute TEXT,
+    PRIMARY KEY(path, attribute),
     FOREIGN KEY(path) REFERENCES files(path),
-    FOREIGN KEY(definition) REFERENCES definitions(definition)
+    FOREIGN KEY(attribute) REFERENCES attributes(attribute)
+);
+CREATE TABLE IF NOT EXISTS attribute_values (
+    attribute TEXT,
+    value TEXT,
+    PRIMARY KEY(attribute, value),
+    FOREIGN KEY(attribute) REFERENCES attributes(attribute),
+    FOREIGN KEY(value) REFERENCES values_tbl(value)
 );
 """
 
@@ -73,12 +87,15 @@ CREATE TABLE IF NOT EXISTS file_definitions (
 
 def analyze_file(path, base_dir):
     """
-    Analyze file at 'path', compute metadata and line counts, collect definition lines.
-    Returns dict with keys:
-      - path (relative to base_dir)
-      - filename
-      - created, modified, size, total_lines, alnum_start, special_start, comment_lines, definition_count
-      - definitions_list: list of unique definition lines (with leading ':' stripped)
+    Analyze file at 'path':
+    - Compute metadata and line-based metrics
+    - Extract attribute:value definitions
+
+    Returns a dict with:
+      path (relative), filename,
+      created, modified, size,
+      total_lines, alnum_start, special_start, comment_lines, definition_count,
+      definitions_list: list of (attribute, value) tuples
     """
     try:
         st = os.stat(path)
@@ -91,28 +108,32 @@ def analyze_file(path, base_dir):
     size = st.st_size
 
     total = alnum = special = comments = 0
-    definitions_set = set()
+    definitions = set()
 
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
             for raw in f:
                 total += 1
-                stripped = raw.lstrip()
-                if not stripped:
+                line = raw.lstrip()
+                if not line:
                     continue
-                if stripped.startswith('//'):
+                if line.startswith('//'):
                     comments += 1
-                elif stripped.startswith(':'):
-                    # Definition line: strip leading ':' and whitespace
-                    definition = stripped[1:].strip()
-                    if definition:
-                        definitions_set.add(definition)
+                    continue
+                if line.startswith(':'):
+                    # parse attribute:value
+                    rest = line[1:].strip()
+                    parts = rest.split(':', 1)
+                    attribute = parts[0].strip()
+                    value = parts[1].strip() if len(parts) > 1 else ''
+                    if attribute:
+                        definitions.add((attribute, value))
+                    continue
+                first = line[0]
+                if first.isalnum():
+                    alnum += 1
                 else:
-                    first = stripped[0]
-                    if first.isalnum():
-                        alnum += 1
-                    else:
-                        special += 1
+                    special += 1
     except Exception as e:
         logging.error(f"Error reading {path!r}: {e}")
         return None
@@ -136,8 +157,8 @@ def analyze_file(path, base_dir):
         'alnum_start': alnum,
         'special_start': special,
         'comment_lines': comments,
-        'definition_count': len(definitions_set),
-        'definitions_list': list(definitions_set)
+        'definition_count': len(definitions),
+        'definitions_list': list(definitions)
     }
 
 # -----------------------------------------------------------------------------
@@ -151,7 +172,7 @@ def process_files(paths, base_dir, workers=4):
                 yield result
 
 # -----------------------------------------------------------------------------
-# Insert into SQLite: files, definitions, and join table
+# Insert into SQLite: files, attributes, values_tbl, and joins
 # -----------------------------------------------------------------------------
 
 def write_to_db(db_path, records):
@@ -159,27 +180,29 @@ def write_to_db(db_path, records):
     cur = conn.cursor()
     cur.executescript(SCHEMA)
 
-    # Prepare insert statements
     insert_file = (
         "INSERT OR REPLACE INTO files"
         " (path,filename,created,modified,size,total_lines,alnum_start,special_start,"
-        "comment_lines,definition_count)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?)"
+        "comment_lines,definition_count) VALUES (?,?,?,?,?,?,?,?,?,?)"
     )
-    insert_def = "INSERT OR IGNORE INTO definitions(definition) VALUES (?)"
-    insert_join = "INSERT OR IGNORE INTO file_definitions(path,definition) VALUES (?,?)"
+    insert_attr = "INSERT OR IGNORE INTO attributes(attribute) VALUES (?)"
+    insert_val = "INSERT OR IGNORE INTO values_tbl(value) VALUES (?)"
+    insert_file_attr = "INSERT OR IGNORE INTO file_attributes(path,attribute) VALUES (?,?)"
+    insert_attr_val = "INSERT OR IGNORE INTO attribute_values(attribute,value) VALUES (?,?)"
 
-    # Insert each record and its definitions
     for r in records:
+        # files
         cur.execute(insert_file, (
             r['path'], r['filename'], r['created'], r['modified'], r['size'],
             r['total_lines'], r['alnum_start'], r['special_start'],
             r['comment_lines'], r['definition_count']
         ))
-        # Definitions
-        for definition in r['definitions_list']:
-            cur.execute(insert_def, (definition,))
-            cur.execute(insert_join, (r['path'], definition))
+        # definitions → attributes & values_tbl
+        for attr, val in r['definitions_list']:
+            cur.execute(insert_attr, (attr,))
+            cur.execute(insert_val, (val,))
+            cur.execute(insert_file_attr, (r['path'], attr))
+            cur.execute(insert_attr_val, (attr, val))
 
     conn.commit()
     conn.close()
@@ -191,7 +214,7 @@ def write_to_db(db_path, records):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Index .adoc files into SQLite with relative paths and definitions"
+        description="Index .adoc files into SQLite with attributes and values"
     )
     parser.add_argument(
         'directory', nargs='?', default=None,
